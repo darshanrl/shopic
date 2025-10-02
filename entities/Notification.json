@@ -1,0 +1,45 @@
+{
+    "name": "Notification",
+    "type": "object",
+    "properties": {
+        "user_id": {
+            "type": "string",
+            "description": "User receiving the notification"
+        },
+        "title": {
+            "type": "string",
+            "description": "Notification title"
+        },
+        "message": {
+            "type": "string",
+            "description": "Notification message"
+        },
+        "type": {
+            "type": "string",
+            "enum": [
+                "contest_joined",
+                "entry_approved",
+                "winner_announced",
+                "like_received",
+                "comment_received",
+                "payment_success"
+            ],
+            "description": "Notification type"
+        },
+        "is_read": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether notification has been read"
+        },
+        "related_id": {
+            "type": "string",
+            "description": "Related contest/entry ID"
+        }
+    },
+    "required": [
+        "user_id",
+        "title",
+        "message",
+        "type"
+    ]
+}

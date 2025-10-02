@@ -1,0 +1,18 @@
+{
+    "name": "Like",
+    "type": "object",
+    "properties": {
+        "entry_id": {
+            "type": "string",
+            "description": "Entry that was liked"
+        },
+        "user_id": {
+            "type": "string",
+            "description": "User who liked the entry"
+        }
+    },
+    "required": [
+        "entry_id",
+        "user_id"
+    ]
+}
