@@ -101,8 +101,8 @@ export default function Layout({ children, currentPageName }) {
         </button>
 
         {/* Sidebar: white on mobile for readability */}
-        <Sidebar className={`fixed md:static z-30 h-screen transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out bg-white text-slate-900 md:bg-transparent md:text-inherit`}>
-          <SidebarHeader className="p-4 border-b flex justify-between items-center md:border-transparent">
+        <Sidebar className={`fixed md:static z-30 h-screen transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out bg-white text-slate-900 md:bg-slate-900 md:text-white shadow-xl border-r border-slate-200 md:border-slate-800`}>
+          <SidebarHeader className="p-4 border-b flex justify-between items-center border-slate-200 md:border-slate-800">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">S</div>
               <span className="font-bold text-lg">ShoPic</span>
@@ -140,7 +140,7 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-slate-200 md:border-slate-700/50 p-4">
+          <SidebarFooter className="border-t border-slate-200 md:border-slate-800 p-4">
             {userProfile ? (
               <div className="rounded-xl p-4 bg-slate-50 md:bg-transparent">
                 <div className="flex items-center gap-3 mb-3">
