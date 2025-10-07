@@ -10,6 +10,9 @@ html, body, #root {
   height: 100%;
 }
 
+/* Prevent accidental horizontal scrolling on mobile */
+body { overflow-x: hidden; }
+
 /* Enhanced UI Components */
 @layer components {
   .glass-effect {
@@ -54,6 +57,15 @@ html, body, #root {
   
   .pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+  
+  /* Hide scrollbar for horizontal carousels/tabs on mobile */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  /* Sticky tabs bar on mobile */
+  .mobile-sticky-tabs {
+    @apply sticky top-0 z-10 -mx-4 px-4 bg-slate-900/80 backdrop-blur border-b border-slate-800;
   }
 }
 
