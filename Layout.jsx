@@ -55,6 +55,17 @@ export default function Layout({ children, currentPageName }) {
   // Close mobile sidebar on route change
   useEffect(() => { setIsSidebarOpen(false); }, [location.pathname]);
 
+  // Lock body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isSidebarOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev || ''; };
+    }
+    // ensure reset when closed
+    document.body.style.overflow = '';
+  }, [isSidebarOpen]);
+
   const loadUserProfile = async () => {
     try {
       let profile = null;
