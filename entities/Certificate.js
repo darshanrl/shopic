@@ -18,14 +18,29 @@ export const Certificate = {
   },
 
   async create(certificateData) {
+    // First try normal insert + select (requires SELECT policy)
     const { data, error } = await supabase
       .from('certificates')
       .insert(certificateData)
       .select()
       .single()
-    
-    if (error) throw error
-    return data
+
+    if (!error) return data
+
+    // If SELECT is not allowed by RLS, retry with minimal returning so INSERT can still succeed
+    // Common PostgREST errors: permission denied (42501) or no rows (PGRST116) due to RLS
+    console.error('Certificate.create error on select after insert:', error)
+    const retry = await supabase
+      .from('certificates')
+      .insert(certificateData, { returning: 'minimal' })
+
+    if (retry.error) {
+      console.error('Certificate.create minimal returning failed:', retry.error)
+      throw retry.error
+    }
+
+    // We don't have the inserted row because of minimal returning; return the payload back
+    return { ...certificateData }
   },
 
   async update(id, updates) {
@@ -61,4 +76,3 @@ export const Certificate = {
     return data?.certificate_url
   }
 }
-
