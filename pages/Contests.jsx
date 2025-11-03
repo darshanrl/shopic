@@ -158,7 +158,64 @@ export default function Contests() {
       alert('Please fill in entry title and upload your creative work first.');
       return;
     }
+    // If contest is free, submit immediately without payment step
+    if ((selectedContest?.entry_fee || 0) === 0) {
+      submitFreeEntry();
+      return;
+    }
     setPaymentStep('payment');
+  };
+
+  const submitFreeEntry = async () => {
+    setUploading(true);
+    try {
+      // Upload entry file
+      const { file_url } = await UploadFile({ file: entryForm.file });
+
+      // Optional: AI judge
+      const AI_JUDGE_URL = import.meta.env.VITE_AI_JUDGE_URL;
+      const ENABLE_AI = String(import.meta.env.VITE_ENABLE_AI || '').toLowerCase() === 'true';
+      let aiScore = 0;
+      if (ENABLE_AI && AI_JUDGE_URL) {
+        try {
+          const resp = await fetch(AI_JUDGE_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+              media_url: file_url,
+              media_type: entryForm.media_type
+            })
+          });
+          if (resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            aiScore = Math.max(0, Math.min(100, Number(data?.ai_score) || 0));
+          }
+        } catch {}
+      }
+
+      await Entry.create({
+        contest_id: selectedContest.id,
+        user_id: user.id,
+        title: entryForm.title,
+        caption: entryForm.caption,
+        media_url: file_url,
+        media_type: entryForm.media_type,
+        payment_status: 'approved',
+        ai_score: aiScore
+      });
+
+      await User.update(user.id, { contests_joined: (user.contests_joined || 0) + 1 });
+      setPaymentStep('uploaded');
+      loadData();
+    } catch (e) {
+      console.error('Free entry submit error:', e);
+      alert('Error submitting entry. Please try again.');
+    }
+    setUploading(false);
   };
 
   const submitPaymentProof = async () => {
@@ -394,16 +451,18 @@ export default function Contests() {
                     <div className="flex gap-3 mt-2">
                       <Button
                         variant={entryForm.media_type === 'image' ? 'default' : 'outline'}
-                        className="flex-1"
+                        className={`flex-1 ${entryForm.media_type === 'image' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
                         onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'image' }))}
+                        aria-pressed={entryForm.media_type === 'image'}
                       >
                         <ImageIcon className="w-4 h-4 mr-2" />
                         Image
                       </Button>
                       <Button
                         variant={entryForm.media_type === 'video' ? 'default' : 'outline'}
-                        className="flex-1"
+                        className={`flex-1 ${entryForm.media_type === 'video' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
                         onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'video' }))}
+                        aria-pressed={entryForm.media_type === 'video'}
                       >
                         <Video className="w-4 h-4 mr-2" />
                         Video
@@ -437,8 +496,14 @@ export default function Contests() {
                      onClick={proceedToPayment}
                      disabled={!entryForm.file || !entryForm.title}
                    >
-                     <QrCode className="w-4 h-4 mr-2" />
-                     Proceed to Payment
+                     {(selectedContest?.entry_fee || 0) === 0 ? (
+                       <>Join for Free</>
+                     ) : (
+                       <>
+                         <QrCode className="w-4 h-4 mr-2" />
+                         Proceed to Payment
+                       </>
+                     )}
                    </Button>
                 </div>
               </div>

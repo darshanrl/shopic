@@ -451,19 +451,33 @@ export default function Winners() {
                                     </div>
                                   </div>
                                   
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="mt-4 text-white hover:bg-white/10 group-hover:bg-white/20 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewProfile(certificate.user_id);
-                                    }}
-                                  >
-                                    <UserIcon className="w-4 h-4 mr-2" />
-                                    View Profile
-                                    <ExternalLink className="w-3 h-3 ml-2" />
-                                  </Button>
+                                  <div className="mt-4 flex items-center justify-center gap-2">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-white hover:bg-white/10 group-hover:bg-white/20 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewProfile(certificate.user_id);
+                                      }}
+                                    >
+                                      <UserIcon className="w-4 h-4 mr-2" />
+                                      View Profile
+                                      <ExternalLink className="w-3 h-3 ml-2" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-purple-300 hover:bg-purple-500/20"
+                                      asChild
+                                      onClick={(e) => e.stopPropagation()}
+                                      disabled={!user?.email}
+                                    >
+                                      <a href={user?.email ? `mailto:${user.email}` : undefined}>
+                                        Message
+                                      </a>
+                                    </Button>
+                                  </div>
                                 </CardContent>
                               </Card>
                             );
@@ -519,6 +533,23 @@ export default function Winners() {
                               {format(new Date(certificate.created_at), 'MMM d')}
                             </div>
                           </div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <Button 
+                            variant="ghost" size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleViewProfile(certificate.user_id); }}
+                            className="text-white hover:bg-white/10"
+                          >
+                            <UserIcon className="w-4 h-4 mr-2" /> View Profile
+                          </Button>
+                          <Button 
+                            variant="ghost" size="sm" asChild
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-purple-300 hover:bg-purple-500/20"
+                            disabled={!user?.email}
+                          >
+                            <a href={user?.email ? `mailto:${user.email}` : undefined}>Message</a>
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

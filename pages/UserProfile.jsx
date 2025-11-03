@@ -43,16 +43,28 @@ export default function UserProfile() {
 
   const loadUserProfile = async () => {
     try {
-      const [userData, entriesData, certificatesData] = await Promise.all([
-        User.getById(userId),
-        Entry.filterByUser(userId),
-        Certificate.list()
-      ]);
-      
+      // Try to fetch user profile; if not found, fallback to list()
+      let userData = null;
+      try {
+        userData = await User.getById(userId);
+      } catch (e) {
+        if (e?.code === 'PGRST116') {
+          const allUsers = await User.list();
+          userData = allUsers.find(u => u.id === userId) || null;
+        } else {
+          // For any other error, still attempt fallback to list
+          const allUsers = await User.list();
+          userData = allUsers.find(u => u.id === userId) || null;
+        }
+      }
+
+      // Load entries via existing filter API
+      const entriesData = await Entry.filter({ user_id: userId });
+      const certificatesData = await Certificate.list();
+
       setUser(userData);
-      setUserEntries(entriesData);
-      
-      // Filter certificates for this user
+      setUserEntries(entriesData || []);
+
       const userCerts = certificatesData.filter(cert => cert.user_id === userId);
       setUserCertificates(userCerts);
     } catch (error) {
@@ -189,29 +201,53 @@ export default function UserProfile() {
                   {user.full_name || user.email?.split('@')[0] || 'Unknown User'}
                 </h1>
                 <p className="text-slate-300 mb-4">{user.bio || 'No bio available'}</p>
+
+                {/* Communicate buttons */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <Button
+                    size="sm"
+                    className="bg-purple-500 hover:bg-purple-600 text-white"
+                    asChild
+                    disabled={!user?.email}
+                  >
+                    <a href={user?.email ? `mailto:${user.email}` : undefined}>
+                      <Mail className="w-4 h-4 mr-2" /> Message
+                    </a>
+                  </Button>
+                  {user?.phone_number && (
+                    <Button size="sm" variant="outline" asChild className="border-green-600 text-green-400 hover:bg-green-700/20">
+                      <a href={`https://wa.me/${String(user.phone_number).replace(/[^0-9]/g,'')}`} target="_blank" rel="noreferrer">
+                        <Phone className="w-4 h-4 mr-2" /> WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                  {user.email && (
+                  {user?.email && (
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       <span>{user.email}</span>
                     </div>
                   )}
-                  {user.phone_number && (
+                  {user?.phone_number && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
                       <span>{user.phone_number}</span>
                     </div>
                   )}
-                  {user.college_name && (
+                  {user?.college_name && (
                     <div className="flex items-center gap-2">
                       <School className="w-4 h-4" />
                       <span>{user.college_name}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Joined {format(new Date(user.created_at), 'MMM yyyy')}</span>
-                  </div>
+                  {user?.created_at && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>Joined {format(new Date(user.created_at), 'MMM yyyy')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

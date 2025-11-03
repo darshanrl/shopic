@@ -4,6 +4,7 @@ import { Like } from "@/entities/Like";
 import { Comment } from "@/entities/Comment";
 import { Contest } from "@/entities/Contest";
 import { User } from "@/entities/User";
+import { useAuth } from "@/src/contexts/AuthContext";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
   MoreVertical
 } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export default function Feed() {
   const [entries, setEntries] = useState([]);
@@ -32,6 +34,8 @@ export default function Feed() {
   const [likes, setLikes] = useState([]);
   const [comments, setComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const { isAdmin } = useAuth ? useAuth() : { isAdmin: false };
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadFeedData();
@@ -133,6 +137,49 @@ export default function Feed() {
     }
   };
 
+  const handleDeleteComment = async (entryId, commentId) => {
+    try {
+      await Comment.delete(commentId);
+      setComments(prev => ({
+        ...prev,
+        [entryId]: (prev[entryId] || []).filter(c => c.id !== commentId)
+      }));
+    } catch (e) {
+      console.error('Delete comment failed:', e);
+      alert(e?.message || 'Failed to delete comment');
+    }
+  };
+
+  const handleEditEntry = async (entry) => {
+    try {
+      const newTitle = window.prompt('Update title', entry.title || '');
+      if (newTitle === null) return;
+      const newCaption = window.prompt('Update caption', entry.caption || '');
+      if (newCaption === null) return;
+      const updated = await Entry.update(entry.id, { title: newTitle, caption: newCaption });
+      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, ...updated } : e));
+    } catch (e) {
+      console.error('Update entry failed:', e);
+      alert(e?.message || 'Failed to update entry');
+    }
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!window.confirm('Delete this entry? This cannot be undone.')) return;
+    try {
+      await Entry.delete(entryId);
+      setEntries(prev => prev.filter(e => e.id !== entryId));
+      setComments(prev => {
+        const newMap = { ...prev };
+        delete newMap[entryId];
+        return newMap;
+      });
+    } catch (e) {
+      console.error('Delete entry failed:', e);
+      alert(e?.message || 'Failed to delete entry');
+    }
+  };
+
   const sortedEntries = () => {
     switch (activeTab) {
       case 'trending':
@@ -208,15 +255,17 @@ export default function Feed() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                          <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center hover:opacity-90">
                             <span className="text-white font-semibold text-sm">
                               {entryUserInitial}
                             </span>
-                          </div>
+                          </button>
                           <div>
                             <h3 className="font-semibold text-white">{entry.title}</h3>
                             <p className="text-sm text-slate-400">
-                              by <span className="font-medium text-slate-200">{entryUserName}</span> in {getContestTitle(entry.contest_id)}
+                              by <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="font-medium text-slate-200 hover:underline">
+                                {entryUserName}
+                              </button> in {getContestTitle(entry.contest_id)}
                             </p>
                           </div>
                         </div>
@@ -268,6 +317,12 @@ export default function Feed() {
                             <MessageCircle className="w-5 h-5" />
                             {comments[entry.id]?.length || 0}
                           </Button>
+                          {(user?.id === entry.user_id || isAdmin) && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={() => handleEditEntry(entry)} className="text-slate-300 border-slate-600">Edit</Button>
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>Delete</Button>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -277,6 +332,7 @@ export default function Feed() {
                           const commentUser = users.find(u => u.id === comment.user_id);
                           const userName = commentUser?.full_name || commentUser?.email?.split('@')[0] || 'Unknown User';
                           const userInitial = userName?.[0]?.toUpperCase() || 'U';
+                          const canDeleteComment = user?.id === comment.user_id || isAdmin;
 
                           return (
                             <div key={comment.id} className="flex items-start gap-2 text-sm">
@@ -285,10 +341,13 @@ export default function Feed() {
                                   {userInitial}
                                 </span>
                               </div>
-                              <div>
-                                <span className="text-white font-medium">{userName}</span>
+                              <div className="flex-1">
+                                <button type="button" onClick={() => navigate(`/profile/${comment.user_id}`)} className="text-white font-medium hover:underline">{userName}</button>
                                 <span className="text-slate-300 ml-2">{comment.content}</span>
                               </div>
+                              {canDeleteComment && (
+                                <Button variant="ghost" size="sm" className="text-red-400" onClick={() => handleDeleteComment(entry.id, comment.id)}>Delete</Button>
+                              )}
                             </div>
                           )
                         })}
