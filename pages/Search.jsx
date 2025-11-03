@@ -141,7 +141,7 @@ export default function Search() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-slate-800/50 border border-slate-700/50">
+          <TabsList className="bg-slate-800/50 border border-slate-700/50 mobile-sticky-tabs overflow-x-auto no-scrollbar whitespace-nowrap">
             <TabsTrigger value="all" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
               All Results
             </TabsTrigger>
@@ -161,7 +161,7 @@ export default function Search() {
               {filteredContests.length > 0 && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">Contests</h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredContests.slice(0, 6).map((contest) => (
                       <Card key={contest.id} className="glass-effect border-slate-700/50 group hover:border-purple-500/50 transition-all duration-300">
                         <div className="relative overflow-hidden rounded-t-lg">
@@ -194,7 +194,7 @@ export default function Search() {
               {filteredEntries.length > 0 && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-4">Creative Entries</h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {filteredEntries.slice(0, 8).map((entry) => (
                       <Card key={entry.id} className="glass-effect border-slate-700/50 group hover:border-purple-500/30 transition-all duration-300">
                         <div className="relative overflow-hidden rounded-t-lg">
@@ -252,7 +252,7 @@ export default function Search() {
           </TabsContent>
 
           <TabsContent value="contests">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredContests.map((contest) => (
                 <Card key={contest.id} className="glass-effect border-slate-700/50 group hover:border-purple-500/50 transition-all duration-300">
                   <div className="relative overflow-hidden rounded-t-lg">
@@ -294,7 +294,7 @@ export default function Search() {
           </TabsContent>
 
           <TabsContent value="entries">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEntries.map((entry) => (
                 <Card key={entry.id} className="glass-effect border-slate-700/50 overflow-hidden group">
                   <div className="relative">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Contest } from "@/entities/Contest";
 import { Entry } from "@/entities/Entry";
 import { User } from "@/entities/User";
+import { Certificate } from "@/entities/Certificate";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
@@ -38,10 +39,33 @@ export default function Dashboard() {
         Entry.list('-created_date', 8),
         User.me()
       ]);
-      
+
+      // Derive live stats for the signed-in user
+      const [myEntries, myCertificates] = await Promise.all([
+        Entry.filter({ user_id: userData.id }),
+        Certificate.list(userData.id)
+      ]);
+
+      // Update total_earnings in DB from certificates and get the updated row
+      let refreshedUser = null;
+      try {
+        refreshedUser = await User.updateTotalEarnings(userData.id);
+      } catch (_) {
+        refreshedUser = null;
+      }
+
+      const displayUser = {
+        ...userData,
+        ...(refreshedUser || {}),
+        contests_joined: myEntries?.length || 0,
+        contests_won: myCertificates?.length || 0,
+        account_balance: Number((refreshedUser || userData)?.account_balance) || 0,
+        total_earnings: Number((refreshedUser || userData)?.total_earnings) || 0,
+      };
+
       setContests(contestsData);
       setEntries(entriesData);
-      setUser(userData);
+      setUser(displayUser);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }

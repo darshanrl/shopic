@@ -332,7 +332,7 @@ export default function Contests() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="bg-slate-800/50 border border-slate-700/50">
+          <TabsList className="bg-slate-800/50 border border-slate-700/50 mobile-sticky-tabs overflow-x-auto no-scrollbar whitespace-nowrap">
             <TabsTrigger value="upcoming" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
               <Clock className="w-4 h-4 mr-2" />
               Upcoming
@@ -353,7 +353,7 @@ export default function Contests() {
 
           {['upcoming', 'ongoing', 'completed', 'my'].map(status => (
             <TabsContent key={status} value={status}>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {filterContests(status).map((contest) => (
                    <Card key={contest.id} className="glass-card card-hover gradient-border group">
                      <div>
