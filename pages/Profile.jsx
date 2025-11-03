@@ -87,6 +87,31 @@ export default function Profile() {
     return contest?.title || 'Unknown Contest';
   };
 
+  const handleEditEntry = async (entry) => {
+    try {
+      const newTitle = window.prompt('Update title', entry.title || '');
+      if (newTitle === null) return;
+      const newCaption = window.prompt('Update caption', entry.caption || '');
+      if (newCaption === null) return;
+      const updated = await Entry.update(entry.id, { title: newTitle, caption: newCaption });
+      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, ...updated } : e));
+    } catch (e) {
+      console.error('Update entry failed:', e);
+      alert(e?.message || 'Failed to update entry');
+    }
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!window.confirm('Delete this entry? This cannot be undone.')) return;
+    try {
+      await Entry.delete(entryId);
+      setEntries(prev => prev.filter(e => e.id !== entryId));
+    } catch (e) {
+      console.error('Delete entry failed:', e);
+      alert(e?.message || 'Failed to delete entry');
+    }
+  };
+
   const handleLogout = async () => {
     await User.logout();
     window.location.reload();
@@ -258,12 +283,16 @@ export default function Profile() {
                           {entry.comments_count || 0}
                         </div>
                       </div>
-                      <span className="text-slate-400">
-                        {(() => {
-                          const d = new Date(entry.created_at || entry.created_date || entry.created || Date.now());
-                          try { return format(d, 'MMM d'); } catch { return '' }
-                        })()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-400">
+                          {(() => {
+                            const d = new Date(entry.created_at || entry.created_date || entry.created || Date.now());
+                            try { return format(d, 'MMM d'); } catch { return '' }
+                          })()}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => handleEditEntry(entry)} className="border-slate-600 text-slate-300 hover:bg-slate-700/50">Edit</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>Delete</Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
