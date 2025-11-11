@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Contest } from '@/entities/Contest';
+import { Camera, Image as ImageIcon } from 'lucide-react';
 
 export default function ContestSubmissionForm({ contestId, contestName = 'Bike Bake', entryFee = 85 }) {
   const [submitting, setSubmitting] = useState(false);
@@ -18,6 +19,13 @@ export default function ContestSubmissionForm({ contestId, contestName = 'Bike B
           const data = await Contest.getById(contestId);
           setContest(data);
           setMaxPhotos(data.max_photos_per_entry || 1);
+          
+          // Set default photo source based on allowed sources
+          if (data.allow_camera_uploads) {
+            setPhotoSource('camera');
+          } else if (data.allow_gallery_uploads) {
+            setPhotoSource('gallery');
+          }
         } catch (err) {
           console.error('Error fetching contest:', err);
           setError('Failed to load contest details');
@@ -197,54 +205,80 @@ export default function ContestSubmissionForm({ contestId, contestName = 'Bike B
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Photo Source *
-          </label>
-          <div className="flex space-x-4">
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                checked={photoSource === 'gallery'}
-                onChange={() => setPhotoSource('gallery')}
-              />
-              <span className="ml-2 text-gray-700">Gallery</span>
+        {contest && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Photo Source
             </label>
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                checked={photoSource === 'camera'}
-                onChange={() => setPhotoSource('camera')}
-              />
-              <span className="ml-2 text-gray-700">Camera</span>
-            </label>
+            <div className="flex space-x-4">
+              {contest.allow_camera_uploads && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoSource('camera')}
+                  className={`flex-1 py-2 px-4 rounded-md border ${
+                    photoSource === 'camera'
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'border-gray-300 bg-white text-gray-700'
+                  }`}
+                >
+                  <Camera className="w-5 h-5 mx-auto mb-1" />
+                  <span>Take Photo</span>
+                </button>
+              )}
+              {contest.allow_gallery_uploads && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoSource('gallery')}
+                  className={`flex-1 py-2 px-4 rounded-md border ${
+                    photoSource === 'gallery'
+                      ? 'bg-blue-100 border-blue-500 text-blue-700'
+                      : 'border-gray-300 bg-white text-gray-700'
+                  }`}
+                >
+                  <ImageIcon className="w-5 h-5 mx-auto mb-1" />
+                  <span>Choose from Gallery</span>
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              {selectedFiles.length} of {maxPhotos} photos selected
+            </p>
           </div>
-        </div>
+        )}
 
         <div>
-          <label htmlFor="photos" className="block text-sm font-medium text-gray-700">
-            Upload Photos ({selectedFiles.length}/{maxPhotos} max) *
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {photoSource === 'camera' ? 'Take Photo' : 'Upload Photos'} *
           </label>
-          <input
-            type="file"
-            id="photos"
-            name="photos"
-            accept="image/jpeg,image/png"
-            multiple
-            onChange={handleFileChange}
-            disabled={selectedFiles.length >= maxPhotos}
-            className="mt-1 block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-indigo-50 file:text-indigo-700
-              hover:file:bg-indigo-100"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            You can upload up to {maxPhotos} photos
-          </p>
+          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+            <div className="space-y-1 text-center">
+              <div className="flex text-sm text-gray-600 justify-center">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none"
+                >
+                  <span>Upload files</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    accept="image/*"
+                    multiple
+                    capture={photoSource === 'camera' ? 'environment' : null}
+                    onChange={handleFileChange}
+                    disabled={selectedFiles.length >= maxPhotos}
+                  />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-gray-500">
+                {selectedFiles.length >= maxPhotos 
+                  ? `Maximum ${maxPhotos} photo${maxPhotos > 1 ? 's' : ''} reached`
+                  : `PNG, JPG, GIF up to ${maxPhotos} photo${maxPhotos > 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
           
           {selectedFiles.length > 0 && (
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">

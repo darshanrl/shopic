@@ -30,7 +30,9 @@ export const Contest = {
     if (error) throw error
     return {
       ...data,
-      max_photos_per_entry: data.max_photos_per_entry || 1 // Default to 1 if not set
+      max_photos_per_entry: data.max_photos_per_entry || 1, // Default to 1 if not set
+      allow_camera_uploads: data.allow_camera_uploads !== false, // Default to true if not set
+      allow_gallery_uploads: data.allow_gallery_uploads !== false // Default to true if not set
     }
   },
 
@@ -42,6 +44,8 @@ export const Contest = {
       .insert([{
         ...contestData,
         max_photos_per_entry: contestData.max_photos_per_entry || 1,
+        allow_camera_uploads: contestData.allow_camera_uploads !== false, // Default to true if not set
+        allow_gallery_uploads: contestData.allow_gallery_uploads !== false, // Default to true if not set
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
