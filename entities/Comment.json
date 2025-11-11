@@ -1,0 +1,23 @@
+{
+    "name": "Comment",
+    "type": "object",
+    "properties": {
+        "entry_id": {
+            "type": "string",
+            "description": "Entry being commented on"
+        },
+        "user_id": {
+            "type": "string",
+            "description": "User who made the comment"
+        },
+        "content": {
+            "type": "string",
+            "description": "Comment content"
+        }
+    },
+    "required": [
+        "entry_id",
+        "user_id",
+        "content"
+    ]
+}

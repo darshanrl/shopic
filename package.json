@@ -1,0 +1,40 @@
+{
+    "name": "snapverse",
+    "version": "0.1.0",
+    "private": true,
+    "homepage": ".",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@hello-pangea/dnd": "^16.5.0",
+        "@radix-ui/react-dialog": "^1.0.5",
+        "@radix-ui/react-label": "^2.0.2",
+        "@radix-ui/react-slot": "^1.0.2",
+        "@radix-ui/react-tabs": "^1.0.4",
+        "@supabase/supabase-js": "^2.57.4",
+        "class-variance-authority": "^0.7.0",
+        "clsx": "^2.1.0",
+        "date-fns": "^3.3.1",
+        "dotenv": "^17.2.2",
+        "framer-motion": "^11.0.8",
+        "lucide-react": "^0.344.0",
+        "multiparty": "^4.2.3",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-router-dom": "^6.22.2",
+        "sharp": "^0.34.4",
+        "tailwind-merge": "^2.2.1",
+        "tailwindcss-animate": "^1.0.7"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.2.0",
+        "autoprefixer": "^10.4.17",
+        "postcss": "^8.4.35",
+        "tailwindcss": "^3.4.1",
+        "vite": "^5.2.0"
+    }
+}

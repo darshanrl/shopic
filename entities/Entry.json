@@ -1,0 +1,82 @@
+{
+    "name": "Entry",
+    "type": "object",
+    "properties": {
+        "contest_id": {
+            "type": "string",
+            "description": "Contest ID this entry belongs to"
+        },
+        "user_id": {
+            "type": "string",
+            "description": "User who submitted the entry"
+        },
+        "title": {
+            "type": "string",
+            "description": "Entry title"
+        },
+        "caption": {
+            "type": "string",
+            "description": "Entry caption/description"
+        },
+        "media_url": {
+            "type": "string",
+            "description": "Uploaded image/video URL"
+        },
+        "media_type": {
+            "type": "string",
+            "enum": [
+                "image",
+                "video"
+            ],
+            "description": "Type of media uploaded"
+        },
+        "payment_status": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "paid_waiting_approval",
+                "approved",
+                "rejected"
+            ],
+            "default": "pending",
+            "description": "Payment and approval status"
+        },
+        "payment_screenshot": {
+            "type": "string",
+            "description": "Screenshot of payment confirmation"
+        },
+        "likes_count": {
+            "type": "number",
+            "default": 0,
+            "description": "Number of likes received"
+        },
+        "comments_count": {
+            "type": "number",
+            "default": 0,
+            "description": "Number of comments received"
+        },
+        "is_winner": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this entry won the contest"
+        },
+        "winner_position": {
+            "type": "number",
+            "description": "Position if winner (1st, 2nd, 3rd)"
+        },
+        "ai_score": {
+            "type": "number",
+            "description": "AI judging score (future feature)"
+        },
+        "admin_notes": {
+            "type": "string",
+            "description": "Admin notes for payment verification"
+        }
+    },
+    "required": [
+        "contest_id",
+        "user_id",
+        "title",
+        "media_type"
+    ]
+}

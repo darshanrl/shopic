@@ -1,0 +1,74 @@
+{
+    "name": "Contest",
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "Contest title"
+        },
+        "description": {
+            "type": "string",
+            "description": "Contest description"
+        },
+        "banner_image": {
+            "type": "string",
+            "description": "Contest banner image URL"
+        },
+        "category": {
+            "type": "string",
+            "enum": [
+                "photography",
+                "videography",
+                "mixed",
+                "festival",
+                "environment",
+                "cultural"
+            ],
+            "description": "Contest category"
+        },
+        "entry_fee": {
+            "type": "number",
+            "description": "Entry fee amount"
+        },
+        "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Contest start date"
+        },
+        "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Contest end date"
+        },
+        "max_participants": {
+            "type": "number",
+            "description": "Maximum number of participants"
+        },
+        "prize_pool": {
+            "type": "number",
+            "description": "Total prize money"
+        },
+        "rules": {
+            "type": "string",
+            "description": "Contest rules and guidelines"
+        },
+        "status": {
+            "type": "string",
+            "enum": [
+                "upcoming",
+                "ongoing",
+                "completed",
+                "cancelled"
+            ],
+            "default": "upcoming",
+            "description": "Contest status"
+        }
+    },
+    "required": [
+        "title",
+        "description",
+        "entry_fee",
+        "start_date",
+        "end_date"
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "name": "Certificate",
+    "type": "object",
+    "properties": {
+        "user_id": {
+            "type": "string",
+            "description": "User who won the certificate"
+        },
+        "contest_id": {
+            "type": "string",
+            "description": "Contest where they won"
+        },
+        "entry_id": {
+            "type": "string",
+            "description": "Winning entry"
+        },
+        "position": {
+            "type": "number",
+            "description": "Position achieved (1, 2, 3)"
+        },
+        "certificate_url": {
+            "type": "string",
+            "description": "Generated certificate PDF URL"
+        },
+        "prize_amount": {
+            "type": "number",
+            "description": "Prize money won"
+        }
+    },
+    "required": [
+        "user_id",
+        "contest_id",
+        "entry_id",
+        "position"
+    ]
+}
