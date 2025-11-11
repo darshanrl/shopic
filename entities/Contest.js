@@ -58,6 +58,8 @@ export const Contest = {
       });
       throw error;
     }
+    
+    console.log('Contest created successfully:', data);
     return data;
   },
 
@@ -83,6 +85,5 @@ export const Contest = {
       .eq('id', id)
     
     if (error) throw error;
-    return { success: true };
   }
 }

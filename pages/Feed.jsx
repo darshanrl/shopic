@@ -269,37 +269,14 @@ export default function Feed() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            className={`${entry.media_type === 'video' 
-                              ? 'bg-red-500/20 text-red-300 border-red-500/30' 
-                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
-                          >
-                            {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
-                            {entry.media_type}
-                          </Badge>
-                          {entry.media_type === 'image' && (
-                            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                              {entry.photo_source === 'camera' ? (
-                                <>
-                                  <Camera className="w-3 h-3 mr-1" />
-                                  Camera
-                                </>
-                              ) : (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 mr-1">
-                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-                                    <line x1="16" y1="5" x2="22" y2="5"></line>
-                                    <line x1="22" y1="5" x2="22" y2="11"></line>
-                                    <circle cx="9" cy="9" r="2"></circle>
-                                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
-                                  </svg>
-                                  Gallery
-                                </>
-                              )}
-                            </Badge>
-                          )}
-                        </div>
+                        <Badge 
+                          className={`${entry.media_type === 'video' 
+                            ? 'bg-red-500/20 text-red-300 border-red-500/30' 
+                            : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
+                        >
+                          {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                          {entry.media_type}
+                        </Badge>
                       </div>
                     </CardHeader>
 
