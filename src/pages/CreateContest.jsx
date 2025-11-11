@@ -30,6 +30,9 @@ export default function CreateContest() {
     entry_fee: 0,
     prize_pool: 0,
     max_participants: 100,
+    max_photos_per_entry: 1, // Default to 1 photo per entry
+    allow_camera_uploads: true,
+    allow_gallery_uploads: true,
     start_date: '',
     end_date: '',
     voting_end_date: '',
@@ -198,6 +201,22 @@ export default function CreateContest() {
                         <option value="mixed">Mixed Media</option>
                       </select>
                     </div>
+                    <div>
+                      <Label htmlFor="max_photos_per_entry" className="text-white">Max Photos per Entry</Label>
+                      <select
+                        id="max_photos_per_entry"
+                        name="max_photos_per_entry"
+                        value={formData.max_photos_per_entry}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? 'Photo' : 'Photos'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -326,6 +345,43 @@ export default function CreateContest() {
                 <TabsContent value="rules" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
+                      <Label className="text-white mb-2 block">Allowed Upload Sources</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="allow_camera_uploads"
+                            name="allow_camera_uploads"
+                            checked={formData.allow_camera_uploads}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              allow_camera_uploads: e.target.checked
+                            }))}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <Label htmlFor="allow_camera_uploads" className="text-white">
+                            Allow Camera Uploads
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="allow_gallery_uploads"
+                            name="allow_gallery_uploads"
+                            checked={formData.allow_gallery_uploads}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              allow_gallery_uploads: e.target.checked
+                            }))}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <Label htmlFor="allow_gallery_uploads" className="text-white">
+                            Allow Gallery Uploads
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
                       <Label htmlFor="entry_fee" className="text-white">Entry Fee ($)</Label>
                       <Input
                         id="entry_fee"
@@ -353,35 +409,19 @@ export default function CreateContest() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="max_participants" className="text-white">Max Participants</Label>
-                    <Input
-                      id="max_participants"
-                      name="max_participants"
-                      type="number"
-                      min="1"
-                      value={formData.max_participants}
-                      onChange={handleInputChange}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="rules" className="text-white">Contest Rules</Label>
-                    <Textarea
-                      id="rules"
-                      name="rules"
-                      value={formData.rules}
-                      onChange={handleInputChange}
-                      placeholder="Enter contest rules and guidelines..."
-                      rows={6}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="schedule" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="max_participants" className="text-white">Max Participants</Label>
+                      <Input
+                        id="max_participants"
+                        name="max_participants"
+                        type="number"
+                        min="1"
+                        value={formData.max_participants}
+                        onChange={handleInputChange}
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
                     <div>
                       <Label htmlFor="start_date" className="text-white">Start Date & Time</Label>
                       <Input
