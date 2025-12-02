@@ -49,9 +49,11 @@ export default function Contests() {
     title: '',
     caption: '',
     media_type: 'image',
-    file: null,
+    file: null, // used for video uploads
+    images: [], // used for multi-image uploads
     payment_screenshot: null // Added payment_screenshot
   });
+  const [imagePreviews, setImagePreviews] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -112,6 +114,54 @@ export default function Contests() {
     }
   };
 
+  const isContestCreator = (contest) => {
+    return Boolean(user?.is_admin) && user?.id && contest?.created_by === user.id;
+  };
+
+  const handleEditContest = async (contest) => {
+    try {
+      if (!isContestCreator(contest)) return;
+      const newTitle = window.prompt('Edit contest title:', contest.title || '');
+      if (newTitle === null) return;
+      const newDescription = window.prompt('Edit description:', contest.description || '');
+      if (newDescription === null) return;
+      const newEntryFeeStr = window.prompt('Edit entry fee:', String(contest.entry_fee ?? 0));
+      if (newEntryFeeStr === null) return;
+      const newPrizePoolStr = window.prompt('Edit prize pool:', String(contest.prize_pool ?? 0));
+      if (newPrizePoolStr === null) return;
+      const newMaxPhotosStr = window.prompt('Max photos per entry:', String(contest.max_photos_per_entry ?? 1));
+      if (newMaxPhotosStr === null) return;
+
+      const updates = {
+        title: newTitle,
+        description: newDescription,
+        entry_fee: Number(newEntryFeeStr) || 0,
+        prize_pool: Number(newPrizePoolStr) || 0,
+        max_photos_per_entry: Math.max(1, Number(newMaxPhotosStr) || 1),
+        updated_at: new Date().toISOString()
+      };
+      await Contest.update(contest.id, updates);
+      await loadData();
+      alert('Contest updated.');
+    } catch (e) {
+      console.error('Edit contest failed:', e);
+      alert(e?.message || 'Failed to update contest');
+    }
+  };
+
+  const handleDeleteContest = async (contest) => {
+    try {
+      if (!isContestCreator(contest)) return;
+      if (!window.confirm('Delete this contest? This will remove all its entries.')) return;
+      await Contest.delete(contest.id);
+      await loadData();
+      alert('Contest deleted.');
+    } catch (e) {
+      console.error('Delete contest failed:', e);
+      alert(e?.message || 'Failed to delete contest');
+    }
+  };
+
   const filterContests = (status) => {
     if (status === 'my') {
       return contests.filter(contest => 
@@ -140,10 +190,59 @@ export default function Contests() {
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setEntryForm(prev => ({ ...prev, file }));
+    const files = Array.from(e.target.files || []);
+    if (entryForm.media_type === 'video') {
+      const file = files[0];
+      if (file) {
+        imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+        setImagePreviews([]);
+        setEntryForm(prev => ({ ...prev, file, images: [] }));
+      }
+      return;
     }
+    const limit = Number(selectedContest?.max_photos_per_entry || 1);
+
+    // Build a unique list combining already selected images + new ones, up to limit
+    const existing = entryForm.images || [];
+    const uniqueKey = (f) => `${f.name}_${f.lastModified}_${f.size}`;
+    const existingKeys = new Set(existing.map(uniqueKey));
+
+    const toAdd = [];
+    for (const f of files) {
+      if (toAdd.length + existing.length >= limit) break;
+      const key = uniqueKey(f);
+      if (!existingKeys.has(key)) {
+        toAdd.push(f);
+        existingKeys.add(key);
+      }
+    }
+
+    const nextImages = [...existing, ...toAdd].slice(0, limit);
+
+    if (existing.length + files.length > limit) {
+      const remaining = Math.max(0, limit - existing.length);
+      alert(`This contest allows up to ${limit} photos per entry. Only ${remaining} more ${remaining === 1 ? 'photo' : 'photos'} accepted.`);
+    }
+
+    // Rebuild previews for nextImages
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    const previews = nextImages.map(f => URL.createObjectURL(f));
+    setImagePreviews(previews);
+    setEntryForm(prev => ({ ...prev, images: nextImages, file: null }));
+  };
+
+  const removeImageAt = (index) => {
+    const nextImages = [...(entryForm.images || [])];
+    const nextPreviews = [...imagePreviews];
+    const [removed] = nextPreviews.splice(index, 1);
+    if (removed) URL.revokeObjectURL(removed);
+    nextImages.splice(index, 1);
+    setEntryForm(prev => ({ ...prev, images: nextImages }));
+    setImagePreviews(nextPreviews);
+  };
+
+  const clearVideo = () => {
+    setEntryForm(prev => ({ ...prev, file: null }));
   };
 
   const handlePaymentScreenshot = (e) => {
@@ -154,8 +253,19 @@ export default function Contests() {
   };
 
   const proceedToPayment = () => {
-    if (!entryForm.title || !entryForm.file) {
-      alert('Please fill in entry title and upload your creative work first.');
+    if (!entryForm.title) {
+      alert('Please fill in entry title first.');
+      return;
+    }
+    const isImage = entryForm.media_type === 'image';
+    const limit = Number(selectedContest?.max_photos_per_entry || 1);
+    const valid = isImage ? (entryForm.images?.length || 0) === limit : !!entryForm.file;
+    if (!valid) {
+      if (isImage) {
+        alert(`Please select exactly ${limit} photos to continue.`);
+      } else {
+        alert('Please upload your video.');
+      }
       return;
     }
     // If contest is free, submit immediately without payment step
@@ -169,10 +279,24 @@ export default function Contests() {
   const submitFreeEntry = async () => {
     setUploading(true);
     try {
-      // Upload entry file
-      const { file_url } = await UploadFile({ file: entryForm.file });
+      let primaryUrl = '';
+      let mediaUrls = null;
 
-      // Optional: AI judge
+      if (entryForm.media_type === 'image') {
+        // Upload multiple images
+        const uploads = [];
+        for (const img of entryForm.images) {
+          uploads.push(UploadFile({ file: img }));
+        }
+        const results = await Promise.all(uploads);
+        mediaUrls = results.map(r => r.file_url).filter(Boolean);
+        primaryUrl = mediaUrls[0];
+      } else {
+        const { file_url } = await UploadFile({ file: entryForm.file });
+        primaryUrl = file_url;
+      }
+
+      // Optional: AI judge uses primaryUrl
       const AI_JUDGE_URL = import.meta.env.VITE_AI_JUDGE_URL;
       const ENABLE_AI = String(import.meta.env.VITE_ENABLE_AI || '').toLowerCase() === 'true';
       let aiScore = 0;
@@ -186,7 +310,7 @@ export default function Contests() {
               'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
-              media_url: file_url,
+              media_url: primaryUrl,
               media_type: entryForm.media_type
             })
           });
@@ -202,7 +326,8 @@ export default function Contests() {
         user_id: user.id,
         title: entryForm.title,
         caption: entryForm.caption,
-        media_url: file_url,
+        media_url: primaryUrl,
+        media_urls: mediaUrls,
         media_type: entryForm.media_type,
         payment_status: 'approved',
         ai_score: aiScore
@@ -226,11 +351,21 @@ export default function Contests() {
 
     setUploading(true);
     try {
-      // Upload entry file
-      const { file_url } = await UploadFile({ file: entryForm.file });
+      let primaryUrl = '';
+      let mediaUrls = null;
+
+      if (entryForm.media_type === 'image') {
+        const uploads = entryForm.images.map((img) => UploadFile({ file: img }));
+        const results = await Promise.all(uploads);
+        mediaUrls = results.map(r => r.file_url).filter(Boolean);
+        primaryUrl = mediaUrls[0];
+      } else {
+        const { file_url } = await UploadFile({ file: entryForm.file });
+        primaryUrl = file_url;
+      }
       
       // Upload payment screenshot
-      const { file_url: payment_url } = await UploadFile({ file: entryForm.payment_screenshot, category: 'payment_proofs' }); // Added category for clarity
+      const { file_url: payment_url } = await UploadFile({ file: entryForm.payment_screenshot, category: 'payment_proofs' });
       
       // Call AI Judge to compute AI score for the uploaded media
       const AI_JUDGE_URL = import.meta.env.VITE_AI_JUDGE_URL;
@@ -246,7 +381,7 @@ export default function Contests() {
               'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
-              media_url: file_url,
+              media_url: primaryUrl,
               media_type: entryForm.media_type
             })
           });
@@ -265,22 +400,20 @@ export default function Contests() {
         user_id: user.id,
         title: entryForm.title,
         caption: entryForm.caption,
-        media_url: file_url,
+        media_url: primaryUrl,
+        media_urls: mediaUrls,
         media_type: entryForm.media_type,
         payment_status: 'approved', // Immediately approve so user is joined
         payment_screenshot: payment_url,
         ai_score: aiScore
       });
 
-      // Note: Admin team can later verify receipts from dataset/dashboard.
-
-      // Update user stats (increment contests_joined)
       await User.update(user.id, {
         contests_joined: (user.contests_joined || 0) + 1
       });
 
-      setPaymentStep('uploaded'); // Move to success screen
-      loadData(); // Reload data to show updated entry status potentially
+      setPaymentStep('uploaded');
+      loadData();
       
     } catch (error) {
       console.error('Error submitting entry:', error);
@@ -292,11 +425,14 @@ export default function Contests() {
   const closeDialog = () => {
     setJoinDialogOpen(false);
     setPaymentStep('details'); // Reset step for next open
+    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    setImagePreviews([]);
     setEntryForm({
       title: '',
       caption: '',
       media_type: 'image',
       file: null,
+      images: [],
       payment_screenshot: null
     });
     // Remove ?join param from URL
@@ -398,6 +534,16 @@ export default function Contests() {
                                : 'Join Contest'
                            }
                          </Button>
+                         {isContestCreator(contest) && (
+                           <div className="mt-3 grid grid-cols-2 gap-3">
+                             <Button variant="outline" className="border-slate-600 text-slate-200" onClick={() => handleEditContest(contest)}>
+                               Edit
+                             </Button>
+                             <Button variant="destructive" onClick={() => handleDeleteContest(contest)}>
+                               Delete
+                             </Button>
+                           </div>
+                         )}
                        </CardContent>
                      </div>
                    </Card>
@@ -476,9 +622,40 @@ export default function Contests() {
                       <input
                         type="file"
                         accept={entryForm.media_type === 'image' ? 'image/*' : 'video/*'}
+                        multiple={entryForm.media_type === 'image'}
                         onChange={handleFileSelect}
                         className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                       />
+                      {entryForm.media_type === 'image' ? (
+                        <>
+                          <p className="text-xs text-slate-400 mt-2">
+                            {imagePreviews.length}/{Number(selectedContest?.max_photos_per_entry || 1)} selected. You can select up to {Number(selectedContest?.max_photos_per_entry || 1)} photos.
+                          </p>
+                          {imagePreviews?.length > 0 && (
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              {imagePreviews.map((src, idx) => (
+                                <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
+                                  <img src={src} alt={`selected ${idx+1}`} className="w-full h-24 object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeImageAt(idx)}
+                                    className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        entryForm.file && (
+                          <div className="mt-3 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
+                            <span className="text-sm text-slate-300 truncate">{entryForm.file.name}</span>
+                            <button type="button" onClick={clearVideo} className="text-xs text-red-400">Remove</button>
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -492,12 +669,17 @@ export default function Contests() {
                     Cancel
                   </Button>
                    <Button
-                     className="flex-1 btn-primary"
-                     onClick={proceedToPayment}
-                     disabled={!entryForm.file || !entryForm.title}
-                   >
+                      className="flex-1 btn-primary"
+                      onClick={proceedToPayment}
+                      disabled={
+                        !entryForm.title ||
+                        (entryForm.media_type === 'image'
+                          ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
+                          : !entryForm.file)
+                      }
+                    >
                      {(selectedContest?.entry_fee || 0) === 0 ? (
-                       <>Join for Free</>
+                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : 1} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : 1}</>
                      ) : (
                        <>
                          <QrCode className="w-4 h-4 mr-2" />

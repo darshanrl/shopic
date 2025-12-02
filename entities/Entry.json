@@ -20,7 +20,12 @@
         },
         "media_url": {
             "type": "string",
-            "description": "Uploaded image/video URL"
+            "description": "Primary uploaded image/video URL"
+        },
+        "media_urls": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional array of image URLs when multiple photos are uploaded"
         },
         "media_type": {
             "type": "string",

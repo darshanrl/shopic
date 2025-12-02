@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Contest } from '@/entities/Contest';
+import { User } from '@/entities/User';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ export default function CreateContest() {
     entry_fee: 0,
     prize_pool: 0,
     max_participants: 100,
+    max_photos_per_entry: 1,
     start_date: '',
     end_date: '',
     voting_end_date: '',
@@ -127,7 +129,8 @@ export default function CreateContest() {
       };
 
       console.log('Submitting contest data:', contestData);
-      const createdContest = await Contest.create(contestData);
+      const me = await User.me();
+      const createdContest = await Contest.create({ ...contestData, created_by: me.id });
       console.log('Contest created successfully:', createdContest);
       
       // Show success message
@@ -364,6 +367,20 @@ export default function CreateContest() {
                       onChange={handleInputChange}
                       className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="max_photos_per_entry" className="text-white">Max Photos per Entry</Label>
+                    <Input
+                      id="max_photos_per_entry"
+                      name="max_photos_per_entry"
+                      type="number"
+                      min="1"
+                      value={formData.max_photos_per_entry}
+                      onChange={handleInputChange}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">How many images a participant can upload for one entry (only used when media type allows images).</p>
                   </div>
 
                   <div>

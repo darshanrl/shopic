@@ -44,6 +44,11 @@
             "type": "number",
             "description": "Maximum number of participants"
         },
+        "max_photos_per_entry": {
+            "type": "number",
+            "description": "Maximum number of photos a participant can upload per entry",
+            "default": 1
+        },
         "prize_pool": {
             "type": "number",
             "description": "Total prize money"

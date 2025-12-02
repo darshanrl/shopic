@@ -32,9 +32,11 @@ CREATE TABLE public.contests (
   start_date TIMESTAMP WITH TIME ZONE NOT NULL,
   end_date TIMESTAMP WITH TIME ZONE NOT NULL,
   max_participants INTEGER,
+  max_photos_per_entry INTEGER DEFAULT 1,
   prize_pool DECIMAL(10,2) NOT NULL,
   rules TEXT,
   status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'completed', 'cancelled')),
+  created_by UUID REFERENCES public.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -47,6 +49,7 @@ CREATE TABLE public.entries (
   title TEXT NOT NULL,
   caption TEXT,
   media_url TEXT NOT NULL,
+  media_urls JSONB, -- optional array of image URLs for carousel posts
   media_type TEXT NOT NULL CHECK (media_type IN ('image', 'video', 'both')),
   payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid_waiting_approval', 'approved', 'rejected')),
   payment_screenshot TEXT,
@@ -124,11 +127,11 @@ CREATE POLICY "Anyone can view contests" ON public.contests FOR SELECT USING (tr
 CREATE POLICY "Only admins can create contests" ON public.contests FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
 );
-CREATE POLICY "Only admins can update contests" ON public.contests FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+CREATE POLICY "Only creator admin can update contest" ON public.contests FOR UPDATE USING (
+  created_by = auth.uid() AND EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
 );
-CREATE POLICY "Only admins can delete contests" ON public.contests FOR DELETE USING (
-  EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
+CREATE POLICY "Only creator admin can delete contest" ON public.contests FOR DELETE USING (
+  created_by = auth.uid() AND EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND is_admin = true)
 );
 
 -- Entries policies
