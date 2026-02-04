@@ -244,7 +244,29 @@ export default function Contests() {
   const clearVideo = () => {
     setEntryForm(prev => ({ ...prev, file: null }));
   };
-
+       // Upload a file directly to Vercel Blob and return its public URL
+  async function uploadToVercelBlob(file, meta = {}) {
+    const r = await fetch('/api/blob/generate-upload-url', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+     body: JSON.stringify({
+        contentType: file.type,
+      filename: file.name,
+      clientPayload: meta,
+    }),
+  });
+  if (!r.ok) throw new Error('Failed to get upload URL');
+  const { uploadUrl } = await r.json();
+  const up = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'content-type': file.type },
+    body: file,
+  });
+  if (!up.ok) throw new Error('Upload failed');
+  const blob = await up.json(); // { url, downloadUrl, ... }
+  return blob.downloadUrl || blob.url;
+  }
+ 
   const handlePaymentScreenshot = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -360,8 +382,11 @@ export default function Contests() {
         mediaUrls = results.map(r => r.file_url).filter(Boolean);
         primaryUrl = mediaUrls[0];
       } else {
-        const { file_url } = await UploadFile({ file: entryForm.file });
-        primaryUrl = file_url;
+        const url = await uploadToVercelBlob(
+          entryForm.file,
+          { kind: 'contest_video', contestId: selectedContest.id }
+        );
+        primaryUrl = url;
       }
       
       // Upload payment screenshot
