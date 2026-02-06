@@ -5,16 +5,18 @@ import { generateUploadUrl } from '@vercel/blob';
 
 const jsonHeaders = { 'content-type': 'application/json' };
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',            // set to your origin if you want
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'content-type',
 };
 
 export default async function handler(req) {
+  // Handle preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  // Reject non-POST
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       status: 405,
