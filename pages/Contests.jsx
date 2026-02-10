@@ -114,13 +114,11 @@ export default function Contests() {
     }
   };
 
-  const isContestCreator = (contest) => {
-    return Boolean(user?.is_admin) && user?.id && contest?.created_by === user.id;
-  };
+  const isAdmin = () => Boolean(user?.is_admin);
 
   const handleEditContest = async (contest) => {
     try {
-      if (!isContestCreator(contest)) return;
+      if (!isAdmin()) return;
       const newTitle = window.prompt('Edit contest title:', contest.title || '');
       if (newTitle === null) return;
       const newDescription = window.prompt('Edit description:', contest.description || '');
@@ -151,7 +149,7 @@ export default function Contests() {
 
   const handleDeleteContest = async (contest) => {
     try {
-      if (!isContestCreator(contest)) return;
+      if (!isAdmin()) return;
       if (!window.confirm('Delete this contest? This will remove all its entries.')) return;
       await Contest.delete(contest.id);
       await loadData();
@@ -559,7 +557,7 @@ export default function Contests() {
                                : 'Join Contest'
                            }
                          </Button>
-                         {isContestCreator(contest) && (
+                         {isAdmin() && (
                            <div className="mt-3 grid grid-cols-2 gap-3">
                              <Button variant="outline" className="border-slate-600 text-slate-200" onClick={() => handleEditContest(contest)}>
                                Edit
