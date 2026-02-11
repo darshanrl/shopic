@@ -167,17 +167,27 @@ export default function Contests() {
       if (!isAdmin()) return;
       if (!window.confirm('Delete this contest? This will remove all its entries.')) return;
       
+      console.log('Attempting to delete contest:', contest.id);
+      
       const response = await fetch(`/api/contests/${contest.id}`, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' }
       });
+      
+      console.log('Delete response status:', response.status);
       
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to delete contest');
       }
       
+      const result = await response.json();
+      console.log('Delete result:', result);
+      
+      // Force refresh contests list
+      console.log('Reloading data...');
       await loadData();
+      
       alert('Contest deleted.');
     } catch (e) {
       console.error('Delete contest failed:', e);

@@ -16,7 +16,9 @@ export default async function handler(req) {
   try {
     switch (req.method) {
       case 'DELETE':
+        console.log('API: Deleting contest with ID:', id);
         await Contest.delete(id);
+        console.log('API: Contest deleted successfully');
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
