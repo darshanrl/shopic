@@ -34,6 +34,7 @@ import {
 import { format } from "date-fns";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import RazorpayPayment from '@/components/RazorpayPayment';
 
 export default function Contests() {
   const [contests, setContests] = useState([]);
@@ -780,35 +781,23 @@ export default function Contests() {
               <div className="space-y-6">
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-4">Complete Payment</h3>
-                  <div className="bg-white p-4 rounded-lg inline-block">
-                    <img 
-                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68c7b613b5f93c0f8691117d/b175f03de_image.png" // Placeholder QR code
-                      alt="Payment QR Code"
-                      className="w-48 h-48 mx-auto"
-                    />
-                  </div>
-                  <p className="text-slate-300 mt-4 mb-2">Scan QR code to pay ₹{selectedContest?.entry_fee}</p>
-                  <p className="text-sm text-slate-400">UPI Payment • Secure Transaction</p>
+                  <p className="text-slate-400 mb-6">
+                    Pay securely with Razorpay to enter "{selectedContest?.title}"
+                  </p>
                 </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label>Upload Payment Screenshot</Label>
-                    <div className="mt-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePaymentScreenshot}
-                        className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-500 file:text-white hover:file:bg-green-600"
-                      />
-                    </div>
-                    {entryForm.payment_screenshot && (
-                      <p className="text-sm text-green-400 mt-2">✓ Screenshot uploaded: {entryForm.payment_screenshot.name}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
+                
+                <RazorpayPayment
+                  contestTitle={selectedContest?.title}
+                  entryFee={selectedContest?.entry_fee}
+                  userEmail={user?.email}
+                  onPaymentSuccess={async (paymentData) => {
+                    console.log('Payment successful:', paymentData);
+                    setPaymentStep('uploaded');
+                    loadData();
+                  }}
+                />
+                
+                <div className="flex gap-3 mt-6">
                   <Button 
                     variant="outline" 
                     className="flex-1" 
@@ -816,23 +805,6 @@ export default function Contests() {
                   >
                     Back
                   </Button>
-                   <Button
-                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                     onClick={submitPaymentProof}
-                     disabled={!entryForm.payment_screenshot || uploading}
-                   >
-                     {uploading ? (
-                       <>
-                         <Upload className="w-4 h-4 mr-2 animate-spin" />
-                         Submitting...
-                       </>
-                     ) : (
-                       <>
-                         <CheckCircle className="w-4 h-4 mr-2" />
-                         Submit for Approval
-                       </>
-                     )}
-                   </Button>
                 </div>
               </div>
             )}
