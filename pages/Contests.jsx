@@ -768,8 +768,8 @@ export default function Contests() {
                        <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : 1} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : 1}</>
                      ) : (
                        <>
-                         <QrCode className="w-4 h-4 mr-2" />
-                         Proceed to Payment
+                         <CreditCard className="w-4 h-4 mr-2" />
+                         Pay with Razorpay
                        </>
                      )}
                    </Button>
