@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 
 export default function Contests() {
   const [contests, setContests] = useState([]);
@@ -143,9 +144,20 @@ export default function Contests() {
         updated_at: new Date().toISOString()
       };
       
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      
       const response = await fetch(`/api/contests/${contest.id}`, {
         method: 'PUT',
-        headers: { 'content-type': 'application/json' },
+        headers: { 
+          'content-type': 'application/json',
+          'authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(updates)
       });
       
@@ -169,9 +181,20 @@ export default function Contests() {
       
       console.log('Attempting to delete contest:', contest.id);
       
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      
       const response = await fetch(`/api/contests/${contest.id}`, {
         method: 'DELETE',
-        headers: { 'content-type': 'application/json' }
+        headers: { 
+          'content-type': 'application/json',
+          'authorization': `Bearer ${token}`
+        }
       });
       
       console.log('Delete response status:', response.status);
