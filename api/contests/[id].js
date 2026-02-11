@@ -1,6 +1,6 @@
 export const config = { runtime: 'edge' };
 
-import { Contest } from '@/entities/Contest';
+import { Contest } from '../../../entities/Contest';
 
 export default async function handler(req) {
   const url = new URL(req.url);
