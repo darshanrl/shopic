@@ -85,6 +85,10 @@ export default function Contests() {
       setContests(contestsData);
       setUser(userData);
       
+      // Debug: expose user to window and log admin status
+      window.user = userData;
+      console.log('User loaded:', { email: userData?.email, is_admin: userData?.is_admin });
+      
       if (userData) {
         const entries = await Entry.filter({ user_id: userData.id });
         setMyEntries(entries);
@@ -557,7 +561,10 @@ export default function Contests() {
                                : 'Join Contest'
                            }
                          </Button>
-                         {isAdmin() && (
+                         {(() => {
+                           const adminCheck = isAdmin();
+                           console.log(`Admin check for contest ${contest.id}:`, adminCheck, 'user:', user);
+                           return adminCheck && (
                            <div className="mt-3 grid grid-cols-2 gap-3">
                              <Button variant="outline" className="border-slate-600 text-slate-200" onClick={() => handleEditContest(contest)}>
                                Edit
@@ -566,7 +573,8 @@ export default function Contests() {
                                Delete
                              </Button>
                            </div>
-                         )}
+                           );
+                         })()}
                        </CardContent>
                      </div>
                    </Card>
