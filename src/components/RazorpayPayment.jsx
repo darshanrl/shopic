@@ -52,7 +52,7 @@ export default function RazorpayPayment({ contestTitle, entryFee, userEmail, onP
 
       // Initialize Razorpay
       const options = {
-        key: 'rzp_test_YOUR_KEY_ID', // Replace with your Razorpay key
+        key: 'rzp_test_SEvmD2z6OF8UYh', // Replace with your Razorpay key
         amount: order.amount,
         currency: order.currency,
         name: 'ShoPic Contest Entry',
