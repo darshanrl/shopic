@@ -9,10 +9,23 @@ export default function RazorpayPayment({ contestTitle, entryFee, userEmail, onP
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
+      // Check if script is already loaded
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.async = true;
+      script.onload = () => {
+        console.log('Razorpay script loaded successfully');
+        resolve(true);
+      };
+      script.onerror = () => {
+        console.error('Failed to load Razorpay script');
+        resolve(false);
+      };
       document.body.appendChild(script);
     });
   };
@@ -51,6 +64,10 @@ export default function RazorpayPayment({ contestTitle, entryFee, userEmail, onP
       const order = await orderResponse.json();
 
       // Initialize Razorpay
+      if (!window.Razorpay) {
+        throw new Error('Razorpay SDK not loaded');
+      }
+
       const options = {
         key: 'rzp_test_SEvmD2z6OF8UYh', // Replace with your Razorpay key
         amount: order.amount,
