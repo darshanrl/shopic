@@ -142,7 +142,18 @@ export default function Contests() {
         max_photos_per_entry: Math.max(1, Number(newMaxPhotosStr) || 1),
         updated_at: new Date().toISOString()
       };
-      await Contest.update(contest.id, updates);
+      
+      const response = await fetch(`/api/contests/${contest.id}`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update contest');
+      }
+      
       await loadData();
       alert('Contest updated.');
     } catch (e) {
@@ -155,7 +166,17 @@ export default function Contests() {
     try {
       if (!isAdmin()) return;
       if (!window.confirm('Delete this contest? This will remove all its entries.')) return;
-      await Contest.delete(contest.id);
+      
+      const response = await fetch(`/api/contests/${contest.id}`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete contest');
+      }
+      
       await loadData();
       alert('Contest deleted.');
     } catch (e) {
