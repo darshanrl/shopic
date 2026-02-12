@@ -329,22 +329,22 @@ export default function Contests() {
     const r = await fetch('/api/blob/generate-upload-url', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-     body: JSON.stringify({
+      body: JSON.stringify({
         contentType: file.type,
-      filename: file.name,
-      clientPayload: meta,
-    }),
-  });
-  if (!r.ok) throw new Error('Failed to get upload URL');
-  const { uploadUrl } = await r.json();
-  const up = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: { 'content-type': file.type },
-    body: file,
-  });
-  if (!up.ok) throw new Error('Upload failed');
-  const blob = await up.json(); // { url, downloadUrl, ... }
-  return blob.downloadUrl || blob.url;
+        filename: file.name,
+        clientPayload: meta,
+      }),
+    });
+    if (!r.ok) throw new Error('Failed to get upload URL');
+    const { uploadUrl } = await r.json();
+    const up = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { 'content-type': file.type },
+      body: file,
+    });
+    if (!up.ok) throw new Error('Upload failed');
+    const blob = await up.json(); // { url, downloadUrl, ... }
+    return blob.downloadUrl || blob.url;
   }
  
   const handlePaymentScreenshot = (e) => {
