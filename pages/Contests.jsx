@@ -52,7 +52,12 @@ export default function Contests() {
     media_type: 'image',
     file: null, // used for video uploads
     images: [], // used for multi-image uploads
-    payment_screenshot: null // Added payment_screenshot
+    payment_screenshot: null, // Added payment_screenshot
+    // For mixed media contests
+    mixed_media: {
+      image: null,
+      video: null
+    }
   });
   const [imagePreviews, setImagePreviews] = useState([]);
   const location = useLocation();
@@ -241,7 +246,12 @@ export default function Contests() {
       caption: '',
       media_type: 'image',
       file: null,
-      payment_screenshot: null // Reset payment screenshot
+      images: [],
+      payment_screenshot: null,
+      mixed_media: {
+        image: null,
+        video: null
+      }
     });
   };
 
@@ -335,17 +345,28 @@ export default function Contests() {
       alert('Please fill in entry title first.');
       return;
     }
-    const isImage = entryForm.media_type === 'image';
-    const limit = Number(selectedContest?.max_photos_per_entry || 1);
-    const valid = isImage ? (entryForm.images?.length || 0) === limit : !!entryForm.file;
-    if (!valid) {
-      if (isImage) {
-        alert(`Please select exactly ${limit} photos to continue.`);
-      } else {
-        alert('Please upload your video.');
+    
+    // Validation for mixed media contests
+    if (selectedContest?.media_type === 'both') {
+      if (!entryForm.mixed_media.image || !entryForm.mixed_media.video) {
+        alert('Both image and video are required for mixed media contests.');
+        return;
       }
-      return;
+    } else {
+      // Normal validation for single media contests
+      const isImage = entryForm.media_type === 'image';
+      const limit = Number(selectedContest?.max_photos_per_entry || 1);
+      const valid = isImage ? (entryForm.images?.length || 0) === limit : !!entryForm.file;
+      if (!valid) {
+        if (isImage) {
+          alert(`Please select exactly ${limit} photos to continue.`);
+        } else {
+          alert('Please upload your video.');
+        }
+        return;
+      }
     }
+    
     // If contest is free, submit immediately without payment step
     if ((selectedContest?.entry_fee || 0) === 0) {
       submitFreeEntry();
@@ -360,7 +381,18 @@ export default function Contests() {
       let primaryUrl = '';
       let mediaUrls = null;
 
-      if (entryForm.media_type === 'image') {
+      if (selectedContest?.media_type === 'both') {
+        // Upload both image and video for mixed media contests
+        const imageUpload = UploadFile({ file: entryForm.mixed_media.image });
+        const videoUpload = uploadToVercelBlob(
+          entryForm.mixed_media.video,
+          { kind: 'contest_video', contestId: selectedContest.id }
+        );
+        
+        const [imageResult, videoResult] = await Promise.all([imageUpload, videoUpload]);
+        mediaUrls = [imageResult.file_url, videoResult].filter(Boolean);
+        primaryUrl = imageResult.file_url; // Use image as primary
+      } else if (entryForm.media_type === 'image') {
         // Upload multiple images
         const uploads = [];
         for (const img of entryForm.images) {
@@ -432,7 +464,18 @@ export default function Contests() {
       let primaryUrl = '';
       let mediaUrls = null;
 
-      if (entryForm.media_type === 'image') {
+      if (selectedContest?.media_type === 'both') {
+        // Upload both image and video for mixed media contests
+        const imageUpload = UploadFile({ file: entryForm.mixed_media.image });
+        const videoUpload = uploadToVercelBlob(
+          entryForm.mixed_media.video,
+          { kind: 'contest_video', contestId: selectedContest.id }
+        );
+        
+        const [imageResult, videoResult] = await Promise.all([imageUpload, videoUpload]);
+        mediaUrls = [imageResult.file_url, videoResult].filter(Boolean);
+        primaryUrl = imageResult.file_url; // Use image as primary
+      } else if (entryForm.media_type === 'image') {
         const uploads = entryForm.images.map((img) => UploadFile({ file: img }));
         const results = await Promise.all(uploads);
         mediaUrls = results.map(r => r.file_url).filter(Boolean);
@@ -680,38 +723,118 @@ export default function Contests() {
                   <div>
                     <Label>Upload Type</Label>
                     <div className="flex gap-3 mt-2">
-                      <Button
-                        variant={entryForm.media_type === 'image' ? 'default' : 'outline'}
-                        className={`flex-1 ${entryForm.media_type === 'image' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
-                        onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'image' }))}
-                        aria-pressed={entryForm.media_type === 'image'}
-                      >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Image
-                      </Button>
-                      <Button
-                        variant={entryForm.media_type === 'video' ? 'default' : 'outline'}
-                        className={`flex-1 ${entryForm.media_type === 'video' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
-                        onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'video' }))}
-                        aria-pressed={entryForm.media_type === 'video'}
-                      >
-                        <Video className="w-4 h-4 mr-2" />
-                        Video
-                      </Button>
+                      {selectedContest?.media_type === 'both' ? (
+                        <div className="flex-1 text-center">
+                          <span className="text-sm text-purple-400">Mixed Media Contest</span>
+                          <p className="text-xs text-slate-400 mt-1">Both image and video required</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            variant={entryForm.media_type === 'image' ? 'default' : 'outline'}
+                            className={`flex-1 ${entryForm.media_type === 'image' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
+                            onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'image' }))}
+                            aria-pressed={entryForm.media_type === 'image'}
+                          >
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                            Image
+                          </Button>
+                          <Button
+                            variant={entryForm.media_type === 'video' ? 'default' : 'outline'}
+                            className={`flex-1 ${entryForm.media_type === 'video' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
+                            onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'video' }))}
+                            aria-pressed={entryForm.media_type === 'video'}
+                          >
+                            <Video className="w-4 h-4 mr-2" />
+                            Video
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <Label>Upload File</Label>
-                    <div className="mt-2">
-                      <input
-                        type="file"
-                        accept={entryForm.media_type === 'image' ? 'image/*' : 'video/*'}
-                        multiple={entryForm.media_type === 'image'}
-                        onChange={handleFileSelect}
-                        className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
-                      />
-                      {entryForm.media_type === 'image' ? (
+                    <Label>Upload Files</Label>
+                    <div className="mt-2 space-y-4">
+                      {selectedContest?.media_type === 'both' ? (
+                        <>
+                          <div>
+                            <Label className="text-sm">Upload Image (Required)</Label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  setEntryForm(prev => ({
+                                    ...prev,
+                                    mixed_media: { ...prev.mixed_media, image: file }
+                                  }));
+                                }
+                              }}
+                              className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                            />
+                            {entryForm.mixed_media.image && (
+                              <div className="mt-2 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
+                                <span className="text-sm text-slate-300 truncate">{entryForm.mixed_media.image.name}</span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setEntryForm(prev => ({
+                                    ...prev,
+                                    mixed_media: { ...prev.mixed_media, image: null }
+                                  }))}
+                                  className="text-xs text-red-400"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm">Upload Video (Required)</Label>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  setEntryForm(prev => ({
+                                    ...prev,
+                                    mixed_media: { ...prev.mixed_media, video: file }
+                                  }));
+                                }
+                              }}
+                              className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                            />
+                            {entryForm.mixed_media.video && (
+                              <div className="mt-2 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
+                                <span className="text-sm text-slate-300 truncate">{entryForm.mixed_media.video.name}</span>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setEntryForm(prev => ({
+                                    ...prev,
+                                    mixed_media: { ...prev.mixed_media, video: null }
+                                  }))}
+                                  className="text-xs text-red-400"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <input
+                          type="file"
+                          accept={entryForm.media_type === 'image' ? 'image/*' : 'video/*'}
+                          multiple={entryForm.media_type === 'image'}
+                          onChange={handleFileSelect}
+                          className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                        />
+                      )}
+                      
+                      {entryForm.media_type === 'image' && selectedContest?.media_type !== 'both' ? (
                         <>
                           <p className="text-xs text-slate-400 mt-2">
                             {imagePreviews.length}/{Number(selectedContest?.max_photos_per_entry || 1)} selected. You can select up to {Number(selectedContest?.max_photos_per_entry || 1)} photos.
@@ -758,13 +881,29 @@ export default function Contests() {
                       onClick={proceedToPayment}
                       disabled={
                         !entryForm.title ||
-                        (entryForm.media_type === 'image'
-                          ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
-                          : !entryForm.file)
+                        (selectedContest?.media_type === 'both'
+                          ? (!entryForm.mixed_media.image || !entryForm.mixed_media.video)
+                          : entryForm.media_type === 'image'
+                            ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
+                            : !entryForm.file)
                       }
                     >
-                     {(selectedContest?.entry_fee || 0) === 0 ? (
-                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : 1} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : 1}</>
+                     {selectedContest?.entry_fee === 0 ? (
+                       <>
+                         Join with {
+                           selectedContest?.media_type === 'both' 
+                             ? (entryForm.mixed_media.image && entryForm.mixed_media.video ? 2 : 0)
+                             : entryForm.media_type === 'image' 
+                               ? (entryForm.images?.length || 0) 
+                               : 1
+                         } of {
+                           selectedContest?.media_type === 'both'
+                             ? 2
+                             : entryForm.media_type === 'image'
+                               ? Number(selectedContest?.max_photos_per_entry || 1)
+                               : 1
+                         } files
+                       </>
                      ) : (
                        <>
                          <QrCode className="w-4 h-4 mr-2" />
