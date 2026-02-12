@@ -241,6 +241,10 @@ export default function Contests() {
     setSelectedContest(contest);
     setJoinDialogOpen(true);
     setPaymentStep('details'); // Set step to 'details' when opening dialog
+    resetEntryForm();
+  };
+
+  const resetEntryForm = () => {
     setEntryForm({
       title: '',
       caption: '',
@@ -253,6 +257,7 @@ export default function Contests() {
         video: null
       }
     });
+    setImagePreviews([]);
   };
 
   const handleFileSelect = (e) => {
