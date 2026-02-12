@@ -9,6 +9,7 @@ export default function RazorpayPayment({ contestTitle, entryFee, userEmail, onP
 
   // Debug: Check if component is rendering
   console.log('RazorpayPayment component rendered with:', { contestTitle, entryFee, userEmail });
+  console.log('Environment variables check - Key ID exists:', process.env.RAZORPAY_KEY_ID ? 'YES' : 'NO');
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
