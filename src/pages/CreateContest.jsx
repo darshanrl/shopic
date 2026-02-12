@@ -38,7 +38,12 @@ export default function CreateContest() {
     rules: '',
     tags: [],
     media_type: 'both', // Allow both photos and videos
-    banner_image: ''
+    banner_image: '',
+    // New fields for mixed media requirements
+    required_photos: 1, // How many photos users must upload
+    required_videos: 1, // How many videos users must upload
+    max_photos_allowed: 3, // Maximum photos allowed
+    max_videos_allowed: 1  // Maximum videos allowed
   });
   const [newTag, setNewTag] = useState('');
   const [bannerUploading, setBannerUploading] = useState(false);
@@ -294,6 +299,68 @@ export default function CreateContest() {
                       </label>
                     </div>
                   </div>
+
+                  {/* Show photo/video requirements when media_type is 'both' */}
+                  {formData.media_type === 'both' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <Label htmlFor="required_photos" className="text-white">Required Photos</Label>
+                        <Input
+                          id="required_photos"
+                          name="required_photos"
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={formData.required_photos}
+                          onChange={handleInputChange}
+                          className="bg-slate-800 border-slate-600 text-white"
+                          placeholder="How many photos must upload"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="required_videos" className="text-white">Required Videos</Label>
+                        <Input
+                          id="required_videos"
+                          name="required_videos"
+                          type="number"
+                          min="0"
+                          max="5"
+                          value={formData.required_videos}
+                          onChange={handleInputChange}
+                          className="bg-slate-800 border-slate-600 text-white"
+                          placeholder="How many videos must upload"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="max_photos_allowed" className="text-white">Max Photos Allowed</Label>
+                        <Input
+                          id="max_photos_allowed"
+                          name="max_photos_allowed"
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={formData.max_photos_allowed}
+                          onChange={handleInputChange}
+                          className="bg-slate-800 border-slate-600 text-white"
+                          placeholder="Maximum photos per entry"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="max_videos_allowed" className="text-white">Max Videos Allowed</Label>
+                        <Input
+                          id="max_videos_allowed"
+                          name="max_videos_allowed"
+                          type="number"
+                          min="0"
+                          max="5"
+                          value={formData.max_videos_allowed}
+                          onChange={handleInputChange}
+                          className="bg-slate-800 border-slate-600 text-white"
+                          placeholder="Maximum videos per entry"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="tags" className="text-white">Tags</Label>

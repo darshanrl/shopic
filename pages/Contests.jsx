@@ -67,6 +67,12 @@ export default function Contests() {
     loadData();
   }, []);
 
+  // Expose state for debugging
+  useEffect(() => {
+    window.entryForm = entryForm;
+    window.selectedContest = selectedContest;
+  }, [entryForm, selectedContest]);
+
   // Open join dialog when URL has ?join=<contestId>
   useEffect(() => {
     if (!loading && contests?.length) {
@@ -238,6 +244,7 @@ export default function Contests() {
       return;
     }
     
+    console.log('handleJoinContest called with:', contest);
     setSelectedContest(contest);
     setJoinDialogOpen(true);
     setPaymentStep('details'); // Set step to 'details' when opening dialog
@@ -245,7 +252,7 @@ export default function Contests() {
   };
 
   const resetEntryForm = () => {
-    setEntryForm({
+    const newForm = {
       title: '',
       caption: '',
       media_type: 'image',
@@ -256,7 +263,9 @@ export default function Contests() {
         images: [], // Support multiple photos
         video: null
       }
-    });
+    };
+    console.log('resetEntryForm setting:', newForm);
+    setEntryForm(newForm);
     setImagePreviews([]);
   };
 
