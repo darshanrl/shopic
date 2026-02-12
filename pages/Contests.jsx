@@ -853,8 +853,8 @@ export default function Contests() {
                        <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : entryForm.media_type === 'video' ? 1 : `${(entryForm.images?.length || 0)} photos + 1 video`} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : entryForm.media_type === 'video' ? 1 : 'multiple'}</>
                      ) : (
                        <>
-                         <CreditCard className="w-4 h-4 mr-2" />
-                         Pay with Razorpay
+                         <QrCode className="w-4 h-4 mr-2" />
+                         Proceed to Payment
                        </>
                      )}
                    </Button>
@@ -867,21 +867,33 @@ export default function Contests() {
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-4">Complete Payment</h3>
                   <p className="text-slate-400 mb-6">
-                    Pay securely with Razorpay to enter "{selectedContest?.title}"
+                    Upload payment screenshot to complete your entry for "{selectedContest?.title}"
                   </p>
                 </div>
                 
-                <RazorpayPayment
-                  contestTitle={selectedContest?.title}
-                  entryFee={selectedContest?.entry_fee}
-                  userEmail={user?.email}
-                  onPaymentSuccess={async (paymentData) => {
-                    console.log('Payment successful:', paymentData);
-                    setPaymentStep('uploaded');
-                    loadData();
-                  }}
-                />
-                
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                  <h4 className="text-yellow-300 font-medium mb-2">📸 Upload Payment Screenshot</h4>
+                  <p className="text-yellow-200 text-sm mb-4">
+                    Take a screenshot of your payment confirmation and upload it below
+                  </p>
+                  <div className="space-y-3">
+                    <Label htmlFor="payment_screenshot">Payment Screenshot</Label>
+                    <Input
+                      id="payment_screenshot"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePaymentScreenshot}
+                      className="bg-slate-800 border-slate-600 text-white"
+                    />
+                    {entryForm.payment_screenshot && (
+                      <div className="flex items-center gap-2 text-green-400 text-sm">
+                        <CheckCircle className="h-4 w-4" />
+                        Screenshot selected: {entryForm.payment_screenshot.name}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex gap-3 mt-6">
                   <Button 
                     variant="outline" 
@@ -889,6 +901,13 @@ export default function Contests() {
                     onClick={() => setPaymentStep('details')}
                   >
                     Back
+                  </Button>
+                  <Button 
+                    className="flex-1 btn-primary"
+                    onClick={submitPaymentProof}
+                    disabled={!entryForm.payment_screenshot}
+                  >
+                    Submit Payment
                   </Button>
                 </div>
               </div>
