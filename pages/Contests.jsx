@@ -786,6 +786,11 @@ export default function Contests() {
                   </p>
                 </div>
                 
+                {/* Debug: Check if we reach payment step */}
+                <div style={{background: 'red', color: 'white', padding: '10px', margin: '10px 0'}}>
+                  DEBUG: Payment step reached. Contest: {selectedContest?.title}, Fee: {selectedContest?.entry_fee}
+                </div>
+                
                 <RazorpayPayment
                   contestTitle={selectedContest?.title}
                   entryFee={selectedContest?.entry_fee}

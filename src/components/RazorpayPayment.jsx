@@ -7,6 +7,9 @@ export default function RazorpayPayment({ contestTitle, entryFee, userEmail, onP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Debug: Check if component is rendering
+  console.log('RazorpayPayment component rendered with:', { contestTitle, entryFee, userEmail });
+
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       // Check if script is already loaded
