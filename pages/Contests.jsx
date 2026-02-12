@@ -436,7 +436,7 @@ export default function Contests() {
             },
             body: JSON.stringify({
               media_url: primaryUrl,
-              media_type: entryForm.media_type
+              media_type: selectedContest?.media_type === 'both' ? 'image' : entryForm.media_type
             })
           });
           if (resp.ok) {
@@ -523,7 +523,7 @@ export default function Contests() {
             },
             body: JSON.stringify({
               media_url: primaryUrl,
-              media_type: entryForm.media_type
+              media_type: selectedContest?.media_type === 'both' ? 'image' : entryForm.media_type
             })
           });
           if (resp.ok) {
