@@ -248,6 +248,7 @@ export default function Contests() {
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
+    
     if (entryForm.media_type === 'video') {
       const file = files[0];
       if (file) {
@@ -257,6 +258,49 @@ export default function Contests() {
       }
       return;
     }
+    
+    if (entryForm.media_type === 'mixed') {
+      const images = [];
+      let videoFile = null;
+      
+      // Separate images and videos
+      files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+          images.push(file);
+        } else if (file.type.startsWith('video/') && !videoFile) {
+          videoFile = file;
+        }
+      });
+      
+      // Handle images
+      const limit = Number(selectedContest?.max_photos_per_entry || 1);
+      const existing = entryForm.images || [];
+      const uniqueKey = (f) => `${f.name}_${f.lastModified}_${f.size}`;
+      const existingKeys = new Set(existing.map(uniqueKey));
+      
+      const toAdd = [];
+      for (const f of images) {
+        if (toAdd.length + existing.length >= limit) break;
+        const key = uniqueKey(f);
+        if (!existingKeys.has(key)) {
+          toAdd.push(f);
+          existingKeys.add(key);
+        }
+      }
+      
+      const nextImages = [...existing, ...toAdd].slice(0, limit);
+      
+      // Rebuild previews for nextImages
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+      const previews = nextImages.map(f => URL.createObjectURL(f));
+      setImagePreviews(previews);
+      
+      // Update form with both images and video
+      setEntryForm(prev => ({ ...prev, images: nextImages, file: videoFile }));
+      return;
+    }
+    
+    // Handle image-only uploads (original logic)
     const limit = Number(selectedContest?.max_photos_per_entry || 1);
 
     // Build a unique list combining already selected images + new ones, up to limit
@@ -699,6 +743,17 @@ export default function Contests() {
                         <Video className="w-4 h-4 mr-2" />
                         Video
                       </Button>
+                      {selectedContest?.media_type === 'both' && (
+                        <Button
+                          variant={entryForm.media_type === 'mixed' ? 'default' : 'outline'}
+                          className={`flex-1 ${entryForm.media_type === 'mixed' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
+                          onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'mixed' }))}
+                          aria-pressed={entryForm.media_type === 'mixed'}
+                        >
+                          <CameraIcon className="w-4 h-4 mr-2" />
+                          Mixed
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -707,8 +762,8 @@ export default function Contests() {
                     <div className="mt-2">
                       <input
                         type="file"
-                        accept={entryForm.media_type === 'image' ? 'image/*' : 'video/*'}
-                        multiple={entryForm.media_type === 'image'}
+                        accept={entryForm.media_type === 'image' ? 'image/*' : entryForm.media_type === 'video' ? 'video/*' : 'image/*,video/*'}
+                        multiple={entryForm.media_type === 'image' || entryForm.media_type === 'mixed'}
                         onChange={handleFileSelect}
                         className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                       />
@@ -734,13 +789,41 @@ export default function Contests() {
                             </div>
                           )}
                         </>
-                      ) : (
+                      ) : entryForm.media_type === 'video' ? (
                         entryForm.file && (
                           <div className="mt-3 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
                             <span className="text-sm text-slate-300 truncate">{entryForm.file.name}</span>
                             <button type="button" onClick={clearVideo} className="text-xs text-red-400">Remove</button>
                           </div>
                         )
+                      ) : (
+                        <>
+                          <p className="text-xs text-slate-400 mt-2">
+                            {imagePreviews.length} photo(s) and {entryForm.file ? 1 : 0} video(s) selected. You can upload multiple photos and one video.
+                          </p>
+                          {imagePreviews?.length > 0 && (
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              {imagePreviews.map((src, idx) => (
+                                <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
+                                  <img src={src} alt={`selected ${idx+1}`} className="w-full h-24 object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeImageAt(idx)}
+                                    className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {entryForm.file && (
+                            <div className="mt-3 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
+                              <span className="text-sm text-slate-300 truncate">{entryForm.file.name}</span>
+                              <button type="button" onClick={clearVideo} className="text-xs text-red-400">Remove</button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -761,11 +844,13 @@ export default function Contests() {
                         !entryForm.title ||
                         (entryForm.media_type === 'image'
                           ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
-                          : !entryForm.file)
+                          : entryForm.media_type === 'video'
+                          ? !entryForm.file
+                          : !entryForm.file && (entryForm.images?.length || 0) === 0)
                       }
                     >
                      {(selectedContest?.entry_fee || 0) === 0 ? (
-                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : 1} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : 1}</>
+                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : entryForm.media_type === 'video' ? 1 : `${(entryForm.images?.length || 0)} photos + 1 video`} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : entryForm.media_type === 'video' ? 1 : 'multiple'}</>
                      ) : (
                        <>
                          <CreditCard className="w-4 h-4 mr-2" />
@@ -784,11 +869,6 @@ export default function Contests() {
                   <p className="text-slate-400 mb-6">
                     Pay securely with Razorpay to enter "{selectedContest?.title}"
                   </p>
-                </div>
-                
-                {/* Debug: Check if we reach payment step */}
-                <div style={{background: 'red', color: 'white', padding: '10px', margin: '10px 0'}}>
-                  DEBUG: Payment step reached. Contest: {selectedContest?.title}, Fee: {selectedContest?.entry_fee}
                 </div>
                 
                 <RazorpayPayment
