@@ -1,5 +1,3 @@
-export const config = { runtime: 'edge' };
-
 import { supabase } from '../../lib/supabase';
 
 export default async function handler(req) {
@@ -20,7 +18,7 @@ export default async function handler(req) {
       entryFee
     } = await req.json();
 
-    // Verify payment signature
+    // Verify payment signature using Node.js crypto
     const crypto = require('crypto');
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
