@@ -34,7 +34,6 @@ import {
 import { format } from "date-fns";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import RazorpayPayment from '@/components/RazorpayPayment';
 
 export default function Contests() {
   const [contests, setContests] = useState([]);
@@ -248,7 +247,6 @@ export default function Contests() {
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
-    
     if (entryForm.media_type === 'video') {
       const file = files[0];
       if (file) {
@@ -258,49 +256,6 @@ export default function Contests() {
       }
       return;
     }
-    
-    if (entryForm.media_type === 'mixed') {
-      const images = [];
-      let videoFile = null;
-      
-      // Separate images and videos
-      files.forEach(file => {
-        if (file.type.startsWith('image/')) {
-          images.push(file);
-        } else if (file.type.startsWith('video/') && !videoFile) {
-          videoFile = file;
-        }
-      });
-      
-      // Handle images
-      const limit = Number(selectedContest?.max_photos_per_entry || 1);
-      const existing = entryForm.images || [];
-      const uniqueKey = (f) => `${f.name}_${f.lastModified}_${f.size}`;
-      const existingKeys = new Set(existing.map(uniqueKey));
-      
-      const toAdd = [];
-      for (const f of images) {
-        if (toAdd.length + existing.length >= limit) break;
-        const key = uniqueKey(f);
-        if (!existingKeys.has(key)) {
-          toAdd.push(f);
-          existingKeys.add(key);
-        }
-      }
-      
-      const nextImages = [...existing, ...toAdd].slice(0, limit);
-      
-      // Rebuild previews for nextImages
-      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
-      const previews = nextImages.map(f => URL.createObjectURL(f));
-      setImagePreviews(previews);
-      
-      // Update form with both images and video
-      setEntryForm(prev => ({ ...prev, images: nextImages, file: videoFile }));
-      return;
-    }
-    
-    // Handle image-only uploads (original logic)
     const limit = Number(selectedContest?.max_photos_per_entry || 1);
 
     // Build a unique list combining already selected images + new ones, up to limit
@@ -743,17 +698,6 @@ export default function Contests() {
                         <Video className="w-4 h-4 mr-2" />
                         Video
                       </Button>
-                      {selectedContest?.media_type === 'both' && (
-                        <Button
-                          variant={entryForm.media_type === 'mixed' ? 'default' : 'outline'}
-                          className={`flex-1 ${entryForm.media_type === 'mixed' ? 'bg-purple-600 text-white hover:bg-purple-600' : ''}`}
-                          onClick={() => setEntryForm(prev => ({ ...prev, media_type: 'mixed' }))}
-                          aria-pressed={entryForm.media_type === 'mixed'}
-                        >
-                          <CameraIcon className="w-4 h-4 mr-2" />
-                          Mixed
-                        </Button>
-                      )}
                     </div>
                   </div>
 
@@ -762,8 +706,8 @@ export default function Contests() {
                     <div className="mt-2">
                       <input
                         type="file"
-                        accept={entryForm.media_type === 'image' ? 'image/*' : entryForm.media_type === 'video' ? 'video/*' : 'image/*,video/*'}
-                        multiple={entryForm.media_type === 'image' || entryForm.media_type === 'mixed'}
+                        accept={entryForm.media_type === 'image' ? 'image/*' : 'video/*'}
+                        multiple={entryForm.media_type === 'image'}
                         onChange={handleFileSelect}
                         className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                       />
@@ -789,41 +733,13 @@ export default function Contests() {
                             </div>
                           )}
                         </>
-                      ) : entryForm.media_type === 'video' ? (
+                      ) : (
                         entryForm.file && (
                           <div className="mt-3 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
                             <span className="text-sm text-slate-300 truncate">{entryForm.file.name}</span>
                             <button type="button" onClick={clearVideo} className="text-xs text-red-400">Remove</button>
                           </div>
                         )
-                      ) : (
-                        <>
-                          <p className="text-xs text-slate-400 mt-2">
-                            {imagePreviews.length} photo(s) and {entryForm.file ? 1 : 0} video(s) selected. You can upload multiple photos and one video.
-                          </p>
-                          {imagePreviews?.length > 0 && (
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                              {imagePreviews.map((src, idx) => (
-                                <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
-                                  <img src={src} alt={`selected ${idx+1}`} className="w-full h-24 object-cover" />
-                                  <button
-                                    type="button"
-                                    onClick={() => removeImageAt(idx)}
-                                    className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {entryForm.file && (
-                            <div className="mt-3 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
-                              <span className="text-sm text-slate-300 truncate">{entryForm.file.name}</span>
-                              <button type="button" onClick={clearVideo} className="text-xs text-red-400">Remove</button>
-                            </div>
-                          )}
-                        </>
                       )}
                     </div>
                   </div>
@@ -844,13 +760,11 @@ export default function Contests() {
                         !entryForm.title ||
                         (entryForm.media_type === 'image'
                           ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
-                          : entryForm.media_type === 'video'
-                          ? !entryForm.file
-                          : !entryForm.file && (entryForm.images?.length || 0) === 0)
+                          : !entryForm.file)
                       }
                     >
                      {(selectedContest?.entry_fee || 0) === 0 ? (
-                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : entryForm.media_type === 'video' ? 1 : `${(entryForm.images?.length || 0)} photos + 1 video`} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : entryForm.media_type === 'video' ? 1 : 'multiple'}</>
+                       <>Join with {entryForm.media_type === 'image' ? (entryForm.images?.length || 0) : 1} of {entryForm.media_type === 'image' ? Number(selectedContest?.max_photos_per_entry || 1) : 1}</>
                      ) : (
                        <>
                          <QrCode className="w-4 h-4 mr-2" />
@@ -866,35 +780,35 @@ export default function Contests() {
               <div className="space-y-6">
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-4">Complete Payment</h3>
-                  <p className="text-slate-400 mb-6">
-                    Upload payment screenshot to complete your entry for "{selectedContest?.title}"
-                  </p>
-                </div>
-                
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-                  <h4 className="text-yellow-300 font-medium mb-2">📸 Upload Payment Screenshot</h4>
-                  <p className="text-yellow-200 text-sm mb-4">
-                    Take a screenshot of your payment confirmation and upload it below
-                  </p>
-                  <div className="space-y-3">
-                    <Label htmlFor="payment_screenshot">Payment Screenshot</Label>
-                    <Input
-                      id="payment_screenshot"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePaymentScreenshot}
-                      className="bg-slate-800 border-slate-600 text-white"
+                  <div className="bg-white p-4 rounded-lg inline-block">
+                    <img 
+                      src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68c7b613b5f93c0f8691117d/b175f03de_image.png" // Placeholder QR code
+                      alt="Payment QR Code"
+                      className="w-48 h-48 mx-auto"
                     />
+                  </div>
+                  <p className="text-slate-300 mt-4 mb-2">Scan QR code to pay ₹{selectedContest?.entry_fee}</p>
+                  <p className="text-sm text-slate-400">UPI Payment • Secure Transaction</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Upload Payment Screenshot</Label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePaymentScreenshot}
+                        className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-500 file:text-white hover:file:bg-green-600"
+                      />
+                    </div>
                     {entryForm.payment_screenshot && (
-                      <div className="flex items-center gap-2 text-green-400 text-sm">
-                        <CheckCircle className="h-4 w-4" />
-                        Screenshot selected: {entryForm.payment_screenshot.name}
-                      </div>
+                      <p className="text-sm text-green-400 mt-2">✓ Screenshot uploaded: {entryForm.payment_screenshot.name}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3">
                   <Button 
                     variant="outline" 
                     className="flex-1" 
@@ -902,13 +816,23 @@ export default function Contests() {
                   >
                     Back
                   </Button>
-                  <Button 
-                    className="flex-1 btn-primary"
-                    onClick={submitPaymentProof}
-                    disabled={!entryForm.payment_screenshot}
-                  >
-                    Submit Payment
-                  </Button>
+                   <Button
+                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                     onClick={submitPaymentProof}
+                     disabled={!entryForm.payment_screenshot || uploading}
+                   >
+                     {uploading ? (
+                       <>
+                         <Upload className="w-4 h-4 mr-2 animate-spin" />
+                         Submitting...
+                       </>
+                     ) : (
+                       <>
+                         <CheckCircle className="w-4 h-4 mr-2" />
+                         Submit for Approval
+                       </>
+                     )}
+                   </Button>
                 </div>
               </div>
             )}
