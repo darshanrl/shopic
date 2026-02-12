@@ -55,7 +55,7 @@ export default function Contests() {
     payment_screenshot: null, // Added payment_screenshot
     // For mixed media contests
     mixed_media: {
-      image: null,
+      images: [], // Support multiple photos
       video: null
     }
   });
@@ -253,7 +253,7 @@ export default function Contests() {
       images: [],
       payment_screenshot: null,
       mixed_media: {
-        image: null,
+        images: [], // Support multiple photos
         video: null
       }
     });
@@ -353,8 +353,16 @@ export default function Contests() {
     
     // Validation for mixed media contests
     if (selectedContest?.media_type === 'both') {
-      if (!entryForm.mixed_media.image || !entryForm.mixed_media.video) {
-        alert('Both image and video are required for mixed media contests.');
+      if (!entryForm.mixed_media.video) {
+        alert('Video is required for mixed media contests.');
+        return;
+      }
+      if (!entryForm.mixed_media.images || entryForm.mixed_media.images.length === 0) {
+        alert('At least 1 photo is required for mixed media contests.');
+        return;
+      }
+      if (entryForm.mixed_media.images.length > 3) {
+        alert('Maximum 3 photos allowed for mixed media contests.');
         return;
       }
     } else {
@@ -387,16 +395,18 @@ export default function Contests() {
       let mediaUrls = null;
 
       if (selectedContest?.media_type === 'both') {
-        // Upload both image and video for mixed media contests
-        const imageUpload = UploadFile({ file: entryForm.mixed_media.image });
+        // Upload multiple photos and one video for mixed media contests
+        const imageUploads = entryForm.mixed_media.images.map((img) => UploadFile({ file: img }));
         const videoUpload = uploadToVercelBlob(
           entryForm.mixed_media.video,
           { kind: 'contest_video', contestId: selectedContest.id }
         );
         
-        const [imageResult, videoResult] = await Promise.all([imageUpload, videoUpload]);
-        mediaUrls = [imageResult.file_url, videoResult].filter(Boolean);
-        primaryUrl = imageResult.file_url; // Use image as primary
+        const imageResults = await Promise.all(imageUploads);
+        const videoResult = await videoUpload;
+        
+        mediaUrls = [...imageResults.map(r => r.file_url), videoResult].filter(Boolean);
+        primaryUrl = imageResults[0]?.file_url; // Use first image as primary
       } else if (entryForm.media_type === 'image') {
         // Upload multiple images
         const uploads = [];
@@ -470,16 +480,18 @@ export default function Contests() {
       let mediaUrls = null;
 
       if (selectedContest?.media_type === 'both') {
-        // Upload both image and video for mixed media contests
-        const imageUpload = UploadFile({ file: entryForm.mixed_media.image });
+        // Upload multiple photos and one video for mixed media contests
+        const imageUploads = entryForm.mixed_media.images.map((img) => UploadFile({ file: img }));
         const videoUpload = uploadToVercelBlob(
           entryForm.mixed_media.video,
           { kind: 'contest_video', contestId: selectedContest.id }
         );
         
-        const [imageResult, videoResult] = await Promise.all([imageUpload, videoUpload]);
-        mediaUrls = [imageResult.file_url, videoResult].filter(Boolean);
-        primaryUrl = imageResult.file_url; // Use image as primary
+        const imageResults = await Promise.all(imageUploads);
+        const videoResult = await videoUpload;
+        
+        mediaUrls = [...imageResults.map(r => r.file_url), videoResult].filter(Boolean);
+        primaryUrl = imageResults[0]?.file_url; // Use first image as primary
       } else if (entryForm.media_type === 'image') {
         const uploads = entryForm.images.map((img) => UploadFile({ file: img }));
         const results = await Promise.all(uploads);
@@ -764,34 +776,45 @@ export default function Contests() {
                       {selectedContest?.media_type === 'both' ? (
                         <>
                           <div>
-                            <Label className="text-sm">Upload Image (Required)</Label>
+                            <Label className="text-sm">Upload Photos (1-3 photos)</Label>
                             <input
                               type="file"
                               accept="image/*"
+                              multiple
                               onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) {
+                                const files = Array.from(e.target.files || []);
+                                if (files.length > 0 && files.length <= 3) {
                                   setEntryForm(prev => ({
                                     ...prev,
-                                    mixed_media: { ...prev.mixed_media, image: file }
+                                    mixed_media: { ...prev.mixed_media, images: files }
                                   }));
                                 }
                               }}
                               className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                             />
-                            {entryForm.mixed_media.image && (
-                              <div className="mt-2 flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
-                                <span className="text-sm text-slate-300 truncate">{entryForm.mixed_media.image.name}</span>
-                                <button 
-                                  type="button" 
-                                  onClick={() => setEntryForm(prev => ({
-                                    ...prev,
-                                    mixed_media: { ...prev.mixed_media, image: null }
-                                  }))}
-                                  className="text-xs text-red-400"
-                                >
-                                  Remove
-                                </button>
+                            {entryForm.mixed_media.images?.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-xs text-slate-400">{entryForm.mixed_media.images.length} photo(s) selected</p>
+                                <div className="mt-2 grid grid-cols-3 gap-2">
+                                  {entryForm.mixed_media.images.map((file, idx) => (
+                                    <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
+                                      <img src={URL.createObjectURL(file)} alt={`photo ${idx+1}`} className="w-full h-16 object-cover" />
+                                      <button 
+                                        type="button" 
+                                        onClick={() => {
+                                          const newImages = entryForm.mixed_media.images.filter((_, i) => i !== idx);
+                                          setEntryForm(prev => ({
+                                            ...prev,
+                                            mixed_media: { ...prev.mixed_media, images: newImages }
+                                          }));
+                                        }}
+                                        className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -887,7 +910,7 @@ export default function Contests() {
                       disabled={
                         !entryForm.title ||
                         (selectedContest?.media_type === 'both'
-                          ? (!entryForm.mixed_media.image || !entryForm.mixed_media.video)
+                          ? (!entryForm.mixed_media.video || !entryForm.mixed_media.images || entryForm.mixed_media.images.length === 0 || entryForm.mixed_media.images.length > 3)
                           : entryForm.media_type === 'image'
                             ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
                             : !entryForm.file)
@@ -897,17 +920,17 @@ export default function Contests() {
                        <>
                          Join with {
                            selectedContest?.media_type === 'both' 
-                             ? (entryForm.mixed_media.image && entryForm.mixed_media.video ? 2 : 0)
+                             ? (entryForm.mixed_media.video && entryForm.mixed_media.images ? `${entryForm.mixed_media.images.length} photos + 1 video` : '0 files')
                              : entryForm.media_type === 'image' 
                                ? (entryForm.images?.length || 0) 
                                : 1
                          } of {
                            selectedContest?.media_type === 'both'
-                             ? 2
+                             ? '1-3 photos + 1 video'
                              : entryForm.media_type === 'image'
                                ? Number(selectedContest?.max_photos_per_entry || 1)
                                : 1
-                         } files
+                         }
                        </>
                      ) : (
                        <>
