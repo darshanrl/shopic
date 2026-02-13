@@ -71,6 +71,20 @@ export default function Contests() {
   useEffect(() => {
     window.entryForm = entryForm;
     window.selectedContest = selectedContest;
+    
+    // Debug logging for mixed media
+    if (selectedContest?.media_type === 'both') {
+      console.log('=== MIXED MEDIA DEBUG ===');
+      console.log('selectedContest:', selectedContest);
+      console.log('entryForm.mixed_media:', entryForm.mixed_media);
+      console.log('images count:', entryForm.mixed_media.images?.length || 0);
+      console.log('videos count:', entryForm.mixed_media.videos?.length || 0);
+      console.log('required_photos:', selectedContest.required_photos);
+      console.log('required_videos:', selectedContest.required_videos);
+      console.log('max_photos_allowed:', selectedContest.max_photos_allowed);
+      console.log('max_videos_allowed:', selectedContest.max_videos_allowed);
+      console.log('========================');
+    }
   }, [entryForm, selectedContest]);
 
   // Open join dialog when URL has ?join=<contestId>
@@ -416,12 +430,24 @@ export default function Contests() {
   };
 
   const submitFreeEntry = async () => {
+    console.log('=== SUBMIT FREE ENTRY DEBUG ===');
+    console.log('selectedContest:', selectedContest);
+    console.log('entryForm:', entryForm);
+    console.log('entryForm.mixed_media:', entryForm.mixed_media);
+    console.log('images:', entryForm.mixed_media.images);
+    console.log('videos:', entryForm.mixed_media.videos);
+    console.log('================================');
+    
     setUploading(true);
     try {
       let primaryUrl = '';
       let mediaUrls = null;
 
       if (selectedContest?.media_type === 'both') {
+        console.log('=== UPLOADING MIXED MEDIA ===');
+        console.log('Uploading images:', entryForm.mixed_media.images);
+        console.log('Uploading videos:', entryForm.mixed_media.videos);
+        
         // Upload multiple photos and videos for mixed media contests
         const imageUploads = entryForm.mixed_media.images.map((img) => UploadFile({ file: img }));
         const videoUploads = entryForm.mixed_media.videos.map((video) => uploadToVercelBlob(
@@ -432,8 +458,15 @@ export default function Contests() {
         const imageResults = await Promise.all(imageUploads);
         const videoResults = await Promise.all(videoUploads);
         
+        console.log('Image upload results:', imageResults);
+        console.log('Video upload results:', videoResults);
+        
         mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
+        
+        console.log('Final mediaUrls:', mediaUrls);
+        console.log('Final primaryUrl:', primaryUrl);
+        console.log('============================');
       } else if (entryForm.media_type === 'image') {
         // Upload multiple images
         const uploads = [];
@@ -484,6 +517,20 @@ export default function Contests() {
         payment_status: 'approved', // Free entries are auto-approved
         ai_score: aiScore
       });
+      
+      console.log('=== ENTRY CREATED ===');
+      console.log('Entry data sent to database:', {
+        contest_id: selectedContest.id,
+        user_id: user.id,
+        title: entryForm.title,
+        caption: entryForm.caption,
+        media_url: primaryUrl,
+        media_urls: mediaUrls,
+        media_type: selectedContest?.media_type === 'both' ? 'both' : entryForm.media_type,
+        payment_status: 'approved',
+        ai_score: aiScore
+      });
+      console.log('==================');
 
       await User.update(user.id, { contests_joined: (user.contests_joined || 0) + 1 });
       setPaymentStep('uploaded');
@@ -813,17 +860,27 @@ export default function Contests() {
                               min={selectedContest.required_photos || 1}
                               max={selectedContest.max_photos_allowed || 3}
                               onChange={(e) => {
+                                console.log('=== PHOTO UPLOAD DEBUG ===');
                                 const files = Array.from(e.target.files || []);
+                                console.log('Files selected:', files);
+                                console.log('Files length:', files.length);
                                 const minPhotos = selectedContest.required_photos || 1;
                                 const maxPhotos = selectedContest.max_photos_allowed || 3;
+                                console.log('minPhotos:', minPhotos, 'maxPhotos:', maxPhotos);
                                 if (files.length >= minPhotos && files.length <= maxPhotos) {
-                                  setEntryForm(prev => ({
-                                    ...prev,
-                                    mixed_media: { ...prev.mixed_media, images: files }
-                                  }));
+                                  console.log('Setting images to:', files);
+                                  setEntryForm(prev => {
+                                    const newForm = {
+                                      ...prev,
+                                      mixed_media: { ...prev.mixed_media, images: files }
+                                    };
+                                    console.log('New entryForm will be:', newForm);
+                                    return newForm;
+                                  });
                                 } else {
                                   alert(`Please select between ${minPhotos} and ${maxPhotos} photos.`);
                                 }
+                                console.log('========================');
                               }}
                               className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                             />
