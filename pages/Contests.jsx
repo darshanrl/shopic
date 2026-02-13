@@ -340,6 +340,11 @@ export default function Contests() {
   };
        // Upload a file directly to Vercel Blob and return its public URL
   async function uploadToVercelBlob(file, meta = {}) {
+    // Temporarily use Supabase only to avoid 405 error
+    console.log('Using Supabase fallback for video upload');
+    return await UploadFile({ file });
+    
+    /* Original Vercel Blob code - disabled temporarily
     try {
       const r = await fetch('/api/blob/generate-upload-url', {
         method: 'POST',
@@ -365,6 +370,7 @@ export default function Contests() {
       // Fallback to Supabase storage
       return await UploadFile({ file });
     }
+    */
   }
  
   const handlePaymentScreenshot = (e) => {
@@ -513,7 +519,7 @@ export default function Contests() {
         caption: entryForm.caption,
         media_url: primaryUrl,
         media_urls: mediaUrls,
-        media_type: selectedContest?.media_type === 'both' ? 'both' : entryForm.media_type,
+        media_type: selectedContest?.media_type === 'both' ? 'both' : (entryForm.media_type || 'image'),
         payment_status: 'approved', // Free entries are auto-approved
         ai_score: aiScore
       });
@@ -617,7 +623,7 @@ export default function Contests() {
         caption: entryForm.caption,
         media_url: primaryUrl,
         media_urls: mediaUrls,
-        media_type: selectedContest?.media_type === 'both' ? 'both' : entryForm.media_type,
+        media_type: selectedContest?.media_type === 'both' ? 'both' : (entryForm.media_type || 'image'),
         payment_status: 'paid_waiting_approval', // Wait for admin approval
         payment_screenshot: payment_url,
         ai_score: aiScore
@@ -867,18 +873,22 @@ export default function Contests() {
                                 const minPhotos = selectedContest.required_photos || 1;
                                 const maxPhotos = selectedContest.max_photos_allowed || 3;
                                 console.log('minPhotos:', minPhotos, 'maxPhotos:', maxPhotos);
-                                if (files.length >= minPhotos && files.length <= maxPhotos) {
-                                  console.log('Setting images to:', files);
+                                
+                                const currentImages = entryForm.mixed_media.images || [];
+                                const newImages = [...currentImages, ...files];
+                                
+                                if (newImages.length >= minPhotos && newImages.length <= maxPhotos) {
+                                  console.log('Setting images to:', newImages);
                                   setEntryForm(prev => {
                                     const newForm = {
                                       ...prev,
-                                      mixed_media: { ...prev.mixed_media, images: files }
+                                      mixed_media: { ...prev.mixed_media, images: newImages }
                                     };
                                     console.log('New entryForm will be:', newForm);
                                     return newForm;
                                   });
                                 } else {
-                                  alert(`Please select between ${minPhotos} and ${maxPhotos} photos.`);
+                                  alert(`Please select between ${minPhotos} and ${maxPhotos} photos total.`);
                                 }
                                 console.log('========================');
                               }}
@@ -926,13 +936,17 @@ export default function Contests() {
                                 const files = Array.from(e.target.files || []);
                                 const requiredVideos = selectedContest.required_videos || 1;
                                 const maxVideos = selectedContest.max_videos_allowed || 1;
-                                if (files.length >= requiredVideos && files.length <= maxVideos) {
+                                
+                                const currentVideos = entryForm.mixed_media.videos || [];
+                                const newVideos = [...currentVideos, ...files];
+                                
+                                if (newVideos.length >= requiredVideos && newVideos.length <= maxVideos) {
                                   setEntryForm(prev => ({
                                     ...prev,
-                                    mixed_media: { ...prev.mixed_media, videos: files }
+                                    mixed_media: { ...prev.mixed_media, videos: newVideos }
                                   }));
                                 } else {
-                                  alert(`Please select between ${requiredVideos} and ${maxVideos} videos.`);
+                                  alert(`Please select between ${requiredVideos} and ${maxVideos} videos total.`);
                                 }
                               }}
                               className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
