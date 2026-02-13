@@ -77,8 +77,8 @@ export default function Contests() {
       console.log('=== MIXED MEDIA DEBUG ===');
       console.log('selectedContest:', selectedContest);
       console.log('entryForm.mixed_media:', entryForm.mixed_media);
-      console.log('images count:', entryForm.mixed_media.images?.length || 0);
-      console.log('videos count:', entryForm.mixed_media.videos?.length || 0);
+      console.log('images count:', entryForm.mixed_media?.images?.length || 0);
+      console.log('videos count:', entryForm.mixed_media?.videos?.length || 0);
       console.log('required_photos:', selectedContest.required_photos);
       console.log('required_videos:', selectedContest.required_videos);
       console.log('max_photos_allowed:', selectedContest.max_photos_allowed);
@@ -393,8 +393,8 @@ export default function Contests() {
       const maxPhotos = selectedContest.max_photos_allowed || 3;
       const maxVideos = selectedContest.max_videos_allowed || 1;
       
-      const uploadedImages = entryForm.mixed_media.images?.length || 0;
-      const uploadedVideos = entryForm.mixed_media.videos?.length || 0;
+      const uploadedImages = entryForm.mixed_media?.images?.length || 0;
+      const uploadedVideos = entryForm.mixed_media?.videos?.length || 0;
       
       if (uploadedImages < requiredPhotos) {
         alert(`At least ${requiredPhotos} photo(s) required for this contest.`);
@@ -440,8 +440,8 @@ export default function Contests() {
     console.log('selectedContest:', selectedContest);
     console.log('entryForm:', entryForm);
     console.log('entryForm.mixed_media:', entryForm.mixed_media);
-    console.log('images:', entryForm.mixed_media.images);
-    console.log('videos:', entryForm.mixed_media.videos);
+    console.log('images:', entryForm.mixed_media?.images);
+    console.log('videos:', entryForm.mixed_media?.videos);
     console.log('================================');
     
     setUploading(true);
@@ -451,12 +451,15 @@ export default function Contests() {
 
       if (selectedContest?.media_type === 'both') {
         console.log('=== UPLOADING MIXED MEDIA ===');
-        console.log('Uploading images:', entryForm.mixed_media.images);
-        console.log('Uploading videos:', entryForm.mixed_media.videos);
+        console.log('Uploading images:', entryForm.mixed_media?.images);
+        console.log('Uploading videos:', entryForm.mixed_media?.videos);
         
         // Upload multiple photos and videos for mixed media contests
-        const imageUploads = entryForm.mixed_media.images.map((img) => UploadFile({ file: img }));
-        const videoUploads = entryForm.mixed_media.videos.map((video) => uploadToVercelBlob(
+        const images = entryForm.mixed_media?.images || [];
+        const videos = entryForm.mixed_media?.videos || [];
+        
+        const imageUploads = images.map((img) => UploadFile({ file: img }));
+        const videoUploads = videos.map((video) => uploadToVercelBlob(
           video,
           { kind: 'contest_video', contestId: selectedContest.id }
         ));
@@ -471,13 +474,13 @@ export default function Contests() {
         const imageUrls = imageResults.map((r, idx) => ({
           url: r.file_url,
           type: 'image',
-          name: entryForm.mixed_media.images[idx]?.name || `image_${idx + 1}`
+          name: images[idx]?.name || `image_${idx + 1}`
         }));
         
         const videoUrls = videoResults.map((r, idx) => ({
           url: r,
           type: 'video', 
-          name: entryForm.mixed_media.videos[idx]?.name || `video_${idx + 1}`
+          name: videos[idx]?.name || `video_${idx + 1}`
         }));
         
         // Combine all media URLs
@@ -575,8 +578,11 @@ export default function Contests() {
 
       if (selectedContest?.media_type === 'both') {
         // Upload multiple photos and videos for mixed media contests
-        const imageUploads = entryForm.mixed_media.images.map((img) => UploadFile({ file: img }));
-        const videoUploads = entryForm.mixed_media.videos.map((video) => uploadToVercelBlob(
+        const images = entryForm.mixed_media?.images || [];
+        const videos = entryForm.mixed_media?.videos || [];
+        
+        const imageUploads = images.map((img) => UploadFile({ file: img }));
+        const videoUploads = videos.map((video) => uploadToVercelBlob(
           video,
           { kind: 'contest_video', contestId: selectedContest.id }
         ));
@@ -588,13 +594,13 @@ export default function Contests() {
         const imageUrls = imageResults.map((r, idx) => ({
           url: r.file_url,
           type: 'image',
-          name: entryForm.mixed_media.images[idx]?.name || `image_${idx + 1}`
+          name: images[idx]?.name || `image_${idx + 1}`
         }));
         
         const videoUrls = videoResults.map((r, idx) => ({
           url: r,
           type: 'video', 
-          name: entryForm.mixed_media.videos[idx]?.name || `video_${idx + 1}`
+          name: videos[idx]?.name || `video_${idx + 1}`
         }));
         
         // Combine all media URLs
@@ -902,7 +908,7 @@ export default function Contests() {
                                 const maxPhotos = selectedContest.max_photos_allowed || 3;
                                 console.log('minPhotos:', minPhotos, 'maxPhotos:', maxPhotos);
                                 
-                                const currentImages = entryForm.mixed_media.images || [];
+                                const currentImages = entryForm.mixed_media?.images || [];
                                 const newImages = [...currentImages, ...files];
                                 
                                 if (newImages.length >= minPhotos && newImages.length <= maxPhotos) {
@@ -922,7 +928,7 @@ export default function Contests() {
                               }}
                               className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                             />
-                            {entryForm.mixed_media.images?.length > 0 && (
+                            {entryForm.mixed_media?.images?.length > 0 && (
                               <div className="mt-2">
                                 <p className="text-xs text-slate-400">
                                   {entryForm.mixed_media.images.length} photo(s) selected 
@@ -935,7 +941,7 @@ export default function Contests() {
                                       <button 
                                         type="button" 
                                         onClick={() => {
-                                          const newImages = entryForm.mixed_media.images.filter((_, i) => i !== idx);
+                                          const newImages = entryForm.mixed_media?.images?.filter((_, i) => i !== idx) || [];
                                           setEntryForm(prev => ({
                                             ...prev,
                                             mixed_media: { ...prev.mixed_media, images: newImages }
@@ -1067,7 +1073,7 @@ export default function Contests() {
                       disabled={
                         !entryForm.title ||
                         (selectedContest?.media_type === 'both'
-                          ? (!entryForm.mixed_media.videos || entryForm.mixed_media.videos.length === 0 || !entryForm.mixed_media.images || entryForm.mixed_media.images.length === 0)
+                          ? (!entryForm.mixed_media?.videos || entryForm.mixed_media.videos.length === 0 || !entryForm.mixed_media?.images || entryForm.mixed_media.images.length === 0)
                           : entryForm.media_type === 'image'
                             ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
                             : !entryForm.file)
@@ -1077,7 +1083,7 @@ export default function Contests() {
                        <>
                          Join with {
                            selectedContest?.media_type === 'both' 
-                             ? (entryForm.mixed_media.videos && entryForm.mixed_media.images ? `${entryForm.mixed_media.images.length} photos + ${entryForm.mixed_media.videos.length} video${entryForm.mixed_media.videos.length > 1 ? 's' : ''}` : '0 files')
+                             ? (entryForm.mixed_media?.videos && entryForm.mixed_media?.images ? `${entryForm.mixed_media.images.length} photos + ${entryForm.mixed_media.videos.length} video${entryForm.mixed_media.videos.length > 1 ? 's' : ''}` : '0 files')
                              : entryForm.media_type === 'image' 
                                ? (entryForm.images?.length || 0) 
                                : 1
