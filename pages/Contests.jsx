@@ -462,8 +462,8 @@ export default function Contests() {
         caption: entryForm.caption,
         media_url: primaryUrl,
         media_urls: mediaUrls,
-        media_type: entryForm.media_type,
-        payment_status: 'approved',
+        media_type: selectedContest?.media_type === 'both' ? 'both' : entryForm.media_type,
+        payment_status: 'approved', // Free entries are auto-approved
         ai_score: aiScore
       });
 
@@ -544,7 +544,7 @@ export default function Contests() {
         }
       }
       
-      // Create entry and immediately mark as approved (joined)
+      // Create entry and mark as waiting for approval
       await Entry.create({
         contest_id: selectedContest.id,
         user_id: user.id,
@@ -552,8 +552,8 @@ export default function Contests() {
         caption: entryForm.caption,
         media_url: primaryUrl,
         media_urls: mediaUrls,
-        media_type: entryForm.media_type,
-        payment_status: 'approved', // Immediately approve so user is joined
+        media_type: selectedContest?.media_type === 'both' ? 'both' : entryForm.media_type,
+        payment_status: 'paid_waiting_approval', // Wait for admin approval
         payment_screenshot: payment_url,
         ai_score: aiScore
       });
