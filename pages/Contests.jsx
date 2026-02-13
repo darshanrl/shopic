@@ -467,10 +467,24 @@ export default function Contests() {
         console.log('Image upload results:', imageResults);
         console.log('Video upload results:', videoResults);
         
-        mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
+        // Create structured media_urls array with type information
+        const imageUrls = imageResults.map((r, idx) => ({
+          url: r.file_url,
+          type: 'image',
+          name: entryForm.mixed_media.images[idx]?.name || `image_${idx + 1}`
+        }));
+        
+        const videoUrls = videoResults.map((r, idx) => ({
+          url: r,
+          type: 'video', 
+          name: entryForm.mixed_media.videos[idx]?.name || `video_${idx + 1}`
+        }));
+        
+        // Combine all media URLs
+        mediaUrls = [...imageUrls, ...videoUrls];
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
         
-        console.log('Final mediaUrls:', mediaUrls);
+        console.log('Final structured mediaUrls:', mediaUrls);
         console.log('Final primaryUrl:', primaryUrl);
         console.log('============================');
       } else if (entryForm.media_type === 'image') {
@@ -570,7 +584,21 @@ export default function Contests() {
         const imageResults = await Promise.all(imageUploads);
         const videoResults = await Promise.all(videoUploads);
         
-        mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
+        // Create structured media_urls array with type information
+        const imageUrls = imageResults.map((r, idx) => ({
+          url: r.file_url,
+          type: 'image',
+          name: entryForm.mixed_media.images[idx]?.name || `image_${idx + 1}`
+        }));
+        
+        const videoUrls = videoResults.map((r, idx) => ({
+          url: r,
+          type: 'video', 
+          name: entryForm.mixed_media.videos[idx]?.name || `video_${idx + 1}`
+        }));
+        
+        // Combine all media URLs
+        mediaUrls = [...imageUrls, ...videoUrls];
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
       } else if (entryForm.media_type === 'image') {
         const uploads = entryForm.images.map((img) => UploadFile({ file: img }));
