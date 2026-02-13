@@ -326,25 +326,31 @@ export default function Contests() {
   };
        // Upload a file directly to Vercel Blob and return its public URL
   async function uploadToVercelBlob(file, meta = {}) {
-    const r = await fetch('/api/blob/generate-upload-url', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        contentType: file.type,
-        filename: file.name,
-        clientPayload: meta,
-      }),
-    });
-    if (!r.ok) throw new Error('Failed to get upload URL');
-    const { uploadUrl } = await r.json();
-    const up = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: { 'content-type': file.type },
-      body: file,
-    });
-    if (!up.ok) throw new Error('Upload failed');
-    const blob = await up.json(); // { url, downloadUrl, ... }
-    return blob.downloadUrl || blob.url;
+    try {
+      const r = await fetch('/api/blob/generate-upload-url', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contentType: file.type,
+          filename: file.name,
+          clientPayload: meta,
+        }),
+      });
+      if (!r.ok) throw new Error('Failed to get upload URL');
+      const { uploadUrl } = await r.json();
+      const up = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'content-type': file.type },
+        body: file,
+      });
+      if (!up.ok) throw new Error('Upload failed');
+      const blob = await up.json(); // { url, downloadUrl, ... }
+      return blob.downloadUrl || blob.url;
+    } catch (error) {
+      console.warn('Vercel Blob upload failed, falling back to Supabase:', error);
+      // Fallback to Supabase storage
+      return await UploadFile({ file });
+    }
   }
  
   const handlePaymentScreenshot = (e) => {
