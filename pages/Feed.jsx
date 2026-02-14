@@ -16,6 +16,7 @@ import {
   Share2,
   Play,
   Camera,
+  Layers,
   TrendingUp,
   Clock,
   Send,
@@ -279,9 +280,11 @@ export default function Feed() {
                         <Badge 
                           className={`${entry.media_type === 'video' 
                             ? 'bg-red-500/20 text-red-300 border-red-500/30' 
-                            : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
+                            : entry.media_type === 'both'
+                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
                         >
-                          {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                          {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : entry.media_type === 'both' ? <Layers className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
                           {entry.media_type}
                         </Badge>
                       </div>
@@ -296,6 +299,56 @@ export default function Feed() {
                         >
                           <source src={entry.media_url} type="video/mp4" />
                         </video>
+                      ) : entry.media_type === 'both' ? (
+                        // Mixed media: show carousel with images and videos
+                        Array.isArray(entry.media_urls) && entry.media_urls.length > 0 ? (
+                          <div className="relative">
+                            <div
+                              className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
+                              onScroll={(e) => onCarouselScroll(entry.id, e)}
+                            >
+                              {entry.media_urls.map((url, i) => {
+                                const isVideo = url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
+                                return (
+                                  <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
+                                    {isVideo ? (
+                                      <video 
+                                        controls 
+                                        className="w-full max-h-96 object-contain bg-black"
+                                        poster={entry.media_url}
+                                      >
+                                        <source src={url} type="video/mp4" />
+                                      </video>
+                                    ) : (
+                                      <img
+                                        src={url}
+                                        alt={`${entry.title} ${i + 1}`}
+                                        className="w-full max-h-96 object-contain"
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                              {(Number(carouselIndex[entry.id] || 0) + 1)} / {entry.media_urls.length}
+                            </div>
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                              {entry.media_urls.map((_, i) => (
+                                <span
+                                  key={i}
+                                  className={`h-1.5 w-1.5 rounded-full ${i === Number(carouselIndex[entry.id] || 0) ? 'bg-white' : 'bg-white/40'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={entry.media_url}
+                            alt={entry.title}
+                            className="w-full max-h-96 object-contain"
+                          />
+                        )
                       ) : Array.isArray(entry.media_urls) && entry.media_urls.length > 1 ? (
                         <div className="relative">
                           <div

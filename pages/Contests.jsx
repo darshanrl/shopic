@@ -483,11 +483,11 @@ export default function Contests() {
           name: videos[idx]?.name || `video_${idx + 1}`
         }));
         
-        // Combine all media URLs
-        mediaUrls = [...imageUrls, ...videoUrls];
+        // Combine all media URLs as simple array
+        mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
         
-        console.log('Final structured mediaUrls:', mediaUrls);
+        console.log('Final mediaUrls (simple array):', mediaUrls);
         console.log('Final primaryUrl:', primaryUrl);
         console.log('============================');
       } else if (entryForm.media_type === 'image') {
@@ -603,8 +603,8 @@ export default function Contests() {
           name: videos[idx]?.name || `video_${idx + 1}`
         }));
         
-        // Combine all media URLs
-        mediaUrls = [...imageUrls, ...videoUrls];
+        // Combine all media URLs as simple array
+        mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
       } else if (entryForm.media_type === 'image') {
         const uploads = entryForm.images.map((img) => UploadFile({ file: img }));
