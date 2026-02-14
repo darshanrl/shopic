@@ -307,8 +307,10 @@ export default function Feed() {
                               className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
                               onScroll={(e) => onCarouselScroll(entry.id, e)}
                             >
-                              {entry.media_urls.map((url, i) => {
-                                const isVideo = url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm');
+                              {entry.media_urls.map((item, i) => {
+                                // Handle both old structured format and new simple URL format
+                                const url = typeof item === 'string' ? item : item?.url;
+                                const isVideo = typeof url === 'string' && (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm'));
                                 return (
                                   <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
                                     {isVideo ? (
@@ -355,15 +357,19 @@ export default function Feed() {
                             className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
                             onScroll={(e) => onCarouselScroll(entry.id, e)}
                           >
-                            {entry.media_urls.map((url, i) => (
-                              <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
-                                <img
-                                  src={url}
-                                  alt={`${entry.title} ${i + 1}`}
-                                  className="w-full max-h-96 object-contain"
-                                />
-                              </div>
-                            ))}
+                            {entry.media_urls.map((item, i) => {
+                              // Handle both old structured format and new simple URL format
+                              const url = typeof item === 'string' ? item : item?.url;
+                              return (
+                                <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
+                                  <img
+                                    src={url}
+                                    alt={`${entry.title} ${i + 1}`}
+                                    className="w-full max-h-96 object-contain"
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                           <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
                             {(Number(carouselIndex[entry.id] || 0) + 1)} / {entry.media_urls.length}
