@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Heart, 
-  Code, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Heart,
+  Code,
   Palette,
   MessageSquare,
   Star,
@@ -34,7 +34,7 @@ export default function AboutUs() {
     const body = `Name: ${contactForm.name}\nEmail: ${contactForm.email}\n\nMessage:\n${contactForm.message}`;
     const mailtoLink = `mailto:darshanrl016@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink);
-    
+
     // Reset form
     setContactForm({ name: '', email: '', message: '' });
     alert('Email client opened! Please send the email to complete your message.');
@@ -47,7 +47,7 @@ export default function AboutUs() {
     const body = `Rating: ${feedback.rating}/5 stars\n\nFeedback:\n${feedback.comment}`;
     const mailtoLink = `mailto:darshanrl016@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink);
-    
+
     // Reset form
     setFeedback({ rating: 0, comment: '' });
     alert('Thank you for your feedback! Email client opened to send your review.');
@@ -56,16 +56,15 @@ export default function AboutUs() {
   const renderStars = (rating, interactive = false) => {
     return Array.from({ length: 5 }, (_, index) => {
       const starIndex = index + 1;
-      const isActive = interactive ? 
+      const isActive = interactive ?
         (hoveredStar >= starIndex || (hoveredStar === 0 && feedback.rating >= starIndex)) :
         rating >= starIndex;
-      
+
       return (
         <Star
           key={index}
-          className={`w-6 h-6 cursor-pointer transition-colors ${
-            isActive ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400'
-          }`}
+          className={`w-6 h-6 cursor-pointer transition-colors ${isActive ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400'
+            }`}
           onClick={() => interactive && setFeedback(prev => ({ ...prev, rating: starIndex }))}
           onMouseEnter={() => interactive && setHoveredStar(starIndex)}
           onMouseLeave={() => interactive && setHoveredStar(0)}
@@ -75,14 +74,14 @@ export default function AboutUs() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 space-y-8 text-white">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">About ShoPic</h1>
           <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-6">
-            ShoPic is a creative contest platform where photographers and artists showcase their talent, 
-            compete in exciting challenges, and win amazing prizes. Join our community of creative minds 
+            ShoPic is a creative contest platform where photographers and artists showcase their talent,
+            compete in exciting challenges, and win amazing prizes. Join our community of creative minds
             and turn your passion into rewards.
           </p>
           <div className="bg-slate-800/30 rounded-lg p-6 max-w-4xl mx-auto">
@@ -267,8 +266,8 @@ export default function AboutUs() {
                   placeholder="Tell us about your experience (optional)"
                 />
               </div>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={feedback.rating === 0}
                 className="bg-yellow-500 hover:bg-yellow-600 text-black disabled:opacity-50 disabled:cursor-not-allowed"
               >

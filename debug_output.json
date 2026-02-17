@@ -1,0 +1,37 @@
+[
+  {
+    "id": "96eee2f2-7d8a-4a11-878a-08404f6052e1",
+    "contest_id": "f8a09179-370b-4d79-832f-21e7cdd46829",
+    "user_id": "8aab7da7-abce-4622-b323-a3770baf665f",
+    "title": "ghm",
+    "caption": "951753",
+    "media_url": "https://jjdfqytmuiqxnsqlkvoy.supabase.co/storage/v1/object/public/snapverse-files/uploads/file_1771242337121_056c8rc.jpg",
+    "media_type": "both",
+    "payment_status": "paid_waiting_approval",
+    "payment_screenshot": "https://jjdfqytmuiqxnsqlkvoy.supabase.co/storage/v1/object/public/snapverse-files/payment_proofs/file_1771242354769_4lyh7o4.png",
+    "likes_count": 0,
+    "comments_count": 0,
+    "is_winner": false,
+    "winner_position": null,
+    "ai_score": 0,
+    "admin_notes": null,
+    "created_at": "2026-02-16T11:45:57.583941+00:00",
+    "updated_at": "2026-02-16T11:45:57.583941+00:00",
+    "entry_fee": 0,
+    "receipt_id": null,
+    "receipt_url": null,
+    "receipt_file_name": null,
+    "receipt_status": "pending_verification",
+    "final_score": 0,
+    "media_urls": [
+      "https://jjdfqytmuiqxnsqlkvoy.supabase.co/storage/v1/object/public/snapverse-files/uploads/file_1771242337121_056c8rc.jpg",
+      {
+        "file_url": "https://jjdfqytmuiqxnsqlkvoy.supabase.co/storage/v1/object/public/snapverse-files/uploads/file_1771242337122_gln1xs2.mp4",
+        "file_name": "file_1771242337122_gln1xs2.mp4",
+        "file_path": "uploads/file_1771242337122_gln1xs2.mp4",
+        "public_url": "https://jjdfqytmuiqxnsqlkvoy.supabase.co/storage/v1/object/public/snapverse-files/uploads/file_1771242337122_gln1xs2.mp4"
+      }
+    ],
+    "photo_source": null
+  }
+]

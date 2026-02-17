@@ -9,15 +9,25 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Camera, 
-  Video, 
-  DollarSign, 
-  Calendar, 
-  Users, 
+import {
+  Camera,
+  Video,
+  DollarSign,
+  Calendar,
+  Users,
   Award,
   Upload,
-  X
+
+  X,
+  Palette,
+  Brush,
+  Box,
+  Sparkles,
+  Layers,
+  Monitor,
+  Check,
+  Trees,
+  Globe
 } from 'lucide-react';
 import { UploadFile } from '@/integrations/Core';
 
@@ -124,20 +134,30 @@ export default function CreateContest() {
       }
 
       // Prepare contest data
+      // Prepare contest data with strictly valid columns
       const contestData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        banner_image: formData.banner_image,
+        category: formData.category, // Must be one of the allowed enums
+        media_type: formData.media_type,
+        entry_fee: formData.entry_fee,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        voting_end_date: formData.voting_end_date ? new Date(formData.voting_end_date).toISOString() : null,
+        max_participants: formData.max_participants,
+        max_photos_per_entry: formData.max_photos_allowed || formData.max_photos_per_entry || 1, // Map frontend field to DB column
+        prize_pool: formData.prize_pool,
+        rules: formData.rules,
         status: 'upcoming',
+        created_by: (await User.me()).id,
         created_at: new Date().toISOString()
       };
+      // Note: tags, voting_end_date, required_photos, etc are not yet supported by DB schema
 
       console.log('Submitting contest data:', contestData);
-      const me = await User.me();
-      const createdContest = await Contest.create({ ...contestData, created_by: me.id });
+      const createdContest = await Contest.create(contestData);
       console.log('Contest created successfully:', createdContest);
-      
+
       // Show success message
       alert('Contest created successfully! Redirecting to contests page...');
       navigate('/contests');
@@ -145,7 +165,7 @@ export default function CreateContest() {
       console.error('Error creating contest:', error);
       console.error('Error details:', error.message);
       console.error('Error code:', error.code);
-      
+
       // Show more specific error message
       const errorMessage = error.message || 'Unknown error occurred';
       alert(`Failed to create contest: ${errorMessage}`);
@@ -192,19 +212,42 @@ export default function CreateContest() {
                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="category" className="text-white">Category</Label>
-                      <select
-                        id="category"
-                        name="category"
-                        value={formData.category}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white"
-                      >
-                        <option value="photography">Photography</option>
-                        <option value="videography">Videography</option>
-                        <option value="mixed">Mixed Media</option>
-                      </select>
+                    <div className="md:col-span-2">
+                      <Label className="text-white mb-3 block">Category</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { id: 'photography', label: 'Photography', icon: Camera, color: 'text-blue-400' },
+                          { id: 'videography', label: 'Videography', icon: Video, color: 'text-green-400' },
+                          { id: 'mixed', label: 'Mixed Media', icon: Layers, color: 'text-yellow-400' },
+                          { id: 'festival', label: 'Festival', icon: Sparkles, color: 'text-orange-400' },
+                          { id: 'environment', label: 'Environment', icon: Trees, color: 'text-emerald-400' },
+                          { id: 'cultural', label: 'Cultural', icon: Globe, color: 'text-pink-400' }
+                        ].map((cat) => (
+                          <div
+                            key={cat.id}
+                            onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
+                            className={`
+                              cursor-pointer relative p-4 rounded-xl border transition-all duration-200 group
+                              flex flex-col items-center justify-center gap-2 text-center
+                              ${formData.category === cat.id
+                                ? 'bg-purple-500/20 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                                : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/30 hover:scale-105'
+                              }
+                            `}
+                          >
+                            <cat.icon className={`h-8 w-8 mb-1 ${formData.category === cat.id ? 'text-white' : cat.color} transition-colors`} />
+                            <span className={`text-sm font-medium ${formData.category === cat.id ? 'text-white' : 'text-slate-300'}`}>
+                              {cat.label}
+                            </span>
+                            {formData.category === cat.id && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-4 w-4 text-purple-400" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">Select a category that best describes your contest theme.</p>
                     </div>
                   </div>
 
@@ -508,7 +551,7 @@ export default function CreateContest() {
                       <p className="text-xs text-slate-400 mt-1">When voting closes (optional)</p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                     <h4 className="text-blue-300 font-medium mb-2">📅 Contest Timeline</h4>
                     <div className="space-y-2 text-sm text-blue-200">

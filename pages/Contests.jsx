@@ -17,10 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Trophy, 
-  Calendar, 
-  Users, 
+import {
+  Trophy,
+  Calendar,
+  Users,
   Clock,
   Upload,
   Image as ImageIcon,
@@ -46,6 +46,7 @@ export default function Contests() {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [paymentStep, setPaymentStep] = useState('details'); // 'details', 'payment', 'uploaded'
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [entryForm, setEntryForm] = useState({
     title: '',
     caption: '',
@@ -71,7 +72,7 @@ export default function Contests() {
   useEffect(() => {
     window.entryForm = entryForm;
     window.selectedContest = selectedContest;
-    
+
     // Debug logging for mixed media
     if (selectedContest?.media_type === 'both') {
       console.log('=== MIXED MEDIA DEBUG ===');
@@ -107,14 +108,14 @@ export default function Contests() {
         Contest.list('-created_date'),
         User.me()
       ]);
-      
+
       setContests(contestsData);
       setUser(userData);
-      
+
       // Debug: expose user to window and log admin status
       window.user = userData;
       console.log('User loaded:', { email: userData?.email, is_admin: userData?.is_admin });
-      
+
       if (userData) {
         const entries = await Entry.filter({ user_id: userData.id });
         setMyEntries(entries);
@@ -129,7 +130,7 @@ export default function Contests() {
     const now = new Date();
     const start = new Date(contest.start_date);
     const end = new Date(contest.end_date);
-    
+
     if (now < start) return 'upcoming';
     if (now > end) return 'completed';
     return 'ongoing';
@@ -168,29 +169,29 @@ export default function Contests() {
         max_photos_per_entry: Math.max(1, Number(newMaxPhotosStr) || 1),
         updated_at: new Date().toISOString()
       };
-      
+
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      
+
       if (!token) {
         throw new Error('Not authenticated');
       }
-      
+
       const response = await fetch(`/api/contests/${contest.id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'content-type': 'application/json',
           'authorization': `Bearer ${token}`
         },
         body: JSON.stringify(updates)
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update contest');
       }
-      
+
       await loadData();
       alert('Contest updated.');
     } catch (e) {
@@ -203,39 +204,17 @@ export default function Contests() {
     try {
       if (!isAdmin()) return;
       if (!window.confirm('Delete this contest? This will remove all its entries.')) return;
-      
+
       console.log('Attempting to delete contest:', contest.id);
-      
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-      
-      const response = await fetch(`/api/contests/${contest.id}`, {
-        method: 'DELETE',
-        headers: { 
-          'content-type': 'application/json',
-          'authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('Delete response status:', response.status);
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete contest');
-      }
-      
-      const result = await response.json();
-      console.log('Delete result:', result);
-      
+
+      await Contest.delete(contest.id);
+
+      console.log('Contest deleted successfully');
+
       // Force refresh contests list
       console.log('Reloading data...');
       await loadData();
-      
+
       alert('Contest deleted.');
     } catch (e) {
       console.error('Delete contest failed:', e);
@@ -245,7 +224,7 @@ export default function Contests() {
 
   const filterContests = (status) => {
     if (status === 'my') {
-      return contests.filter(contest => 
+      return contests.filter(contest =>
         myEntries.some(entry => entry.contest_id === contest.id)
       );
     }
@@ -257,7 +236,7 @@ export default function Contests() {
       User.login();
       return;
     }
-    
+
     console.log('handleJoinContest called with:', contest);
     setSelectedContest(contest);
     setJoinDialogOpen(true);
@@ -338,41 +317,71 @@ export default function Contests() {
   const clearVideo = () => {
     setEntryForm(prev => ({ ...prev, file: null }));
   };
-       // Upload a file directly to Vercel Blob and return its public URL
-  async function uploadToVercelBlob(file, meta = {}) {
-    // Temporarily use Supabase only to avoid 405 error
-    console.log('Using Supabase fallback for video upload');
-    return await UploadFile({ file });
-    
-    /* Original Vercel Blob code - disabled temporarily
-    try {
-      const r = await fetch('/api/blob/generate-upload-url', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contentType: file.type,
-          filename: file.name,
-          clientPayload: meta,
-        }),
-      });
-      if (!r.ok) throw new Error('Failed to get upload URL');
-      const { uploadUrl } = await r.json();
-      const up = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'content-type': file.type },
-        body: file,
-      });
-      if (!up.ok) throw new Error('Upload failed');
-      const blob = await up.json(); // { url, downloadUrl, ... }
-      return blob.downloadUrl || blob.url;
-    } catch (error) {
-      console.warn('Vercel Blob upload failed, falling back to Supabase:', error);
-      // Fallback to Supabase storage
-      return await UploadFile({ file });
+  // Helper: Upload with progress tracking using XMLHttpRequest
+  const uploadWithProgress = async (file, onProgress) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('No session');
+
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        const fileName = `video_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const url = `${supabaseUrl}/storage/v1/object/snapverse-files/${filePath}`;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_ANON_KEY);
+        // xhr.setRequestHeader('Content-Type', file.type); // Supabase might want this or let it detect from body
+        // Unlike simple fetch, Supabase standard upload expects raw body but headers might need adjustment or x-upsert
+        // Actually, for standard upload, we should use the proper content-type.
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.setRequestHeader('x-upsert', 'false');
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            if (onProgress) onProgress(percent);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            // Construct public URL manually or fetch it
+            const publicUrl = `${supabaseUrl}/storage/v1/object/public/snapverse-files/${filePath}`;
+            resolve(publicUrl);
+          } else {
+            console.error('Upload failed:', xhr.responseText);
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+
+        xhr.send(file);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  };
+
+  // Upload a file directly to Vercel Blob and return its public URL
+  async function uploadToVercelBlob(file, meta = {}, onProgress) {
+    if (file.type.startsWith('video/') && onProgress) {
+      // Use XHR for video progress
+      return await uploadWithProgress(file, onProgress);
     }
-    */
+    // Temporarily use Supabase only to avoid 405 error
+    console.log('Using Supabase fallback for file upload');
+    const res = await UploadFile({ file });
+    return res.file_url;
   }
- 
+
   const handlePaymentScreenshot = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -385,17 +394,17 @@ export default function Contests() {
       alert('Please fill in entry title first.');
       return;
     }
-    
+
     // Validation for mixed media contests
     if (selectedContest?.media_type === 'both') {
       const requiredPhotos = selectedContest.required_photos || 1;
       const requiredVideos = selectedContest.required_videos || 1;
       const maxPhotos = selectedContest.max_photos_allowed || 3;
       const maxVideos = selectedContest.max_videos_allowed || 1;
-      
+
       const uploadedImages = entryForm.mixed_media?.images?.length || 0;
       const uploadedVideos = entryForm.mixed_media?.videos?.length || 0;
-      
+
       if (uploadedImages < requiredPhotos) {
         alert(`At least ${requiredPhotos} photo(s) required for this contest.`);
         return;
@@ -426,7 +435,7 @@ export default function Contests() {
         return;
       }
     }
-    
+
     // If contest is free, submit immediately without payment step
     if ((selectedContest?.entry_fee || 0) === 0) {
       submitFreeEntry();
@@ -443,7 +452,7 @@ export default function Contests() {
     console.log('images:', entryForm.mixed_media?.images);
     console.log('videos:', entryForm.mixed_media?.videos);
     console.log('================================');
-    
+
     setUploading(true);
     try {
       let primaryUrl = '';
@@ -453,40 +462,40 @@ export default function Contests() {
         console.log('=== UPLOADING MIXED MEDIA ===');
         console.log('Uploading images:', entryForm.mixed_media?.images);
         console.log('Uploading videos:', entryForm.mixed_media?.videos);
-        
+
         // Upload multiple photos and videos for mixed media contests
         const images = entryForm.mixed_media?.images || [];
         const videos = entryForm.mixed_media?.videos || [];
-        
+
         const imageUploads = images.map((img) => UploadFile({ file: img }));
         const videoUploads = videos.map((video) => uploadToVercelBlob(
           video,
           { kind: 'contest_video', contestId: selectedContest.id }
         ));
-        
+
         const imageResults = await Promise.all(imageUploads);
         const videoResults = await Promise.all(videoUploads);
-        
+
         console.log('Image upload results:', imageResults);
         console.log('Video upload results:', videoResults);
-        
+
         // Create structured media_urls array with type information
         const imageUrls = imageResults.map((r, idx) => ({
           url: r.file_url,
           type: 'image',
           name: images[idx]?.name || `image_${idx + 1}`
         }));
-        
+
         const videoUrls = videoResults.map((r, idx) => ({
           url: r,
-          type: 'video', 
+          type: 'video',
           name: videos[idx]?.name || `video_${idx + 1}`
         }));
-        
+
         // Combine all media URLs as simple array
         mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
-        
+
         console.log('Final mediaUrls (simple array):', mediaUrls);
         console.log('Final primaryUrl:', primaryUrl);
         console.log('============================');
@@ -526,7 +535,7 @@ export default function Contests() {
             const data = await resp.json().catch(() => ({}));
             aiScore = Math.max(0, Math.min(100, Number(data?.ai_score) || 0));
           }
-        } catch {}
+        } catch { }
       }
 
       await Entry.create({
@@ -540,7 +549,7 @@ export default function Contests() {
         payment_status: 'approved', // Free entries are auto-approved
         ai_score: aiScore
       });
-      
+
       console.log('=== ENTRY CREATED ===');
       console.log('Entry data sent to database:', {
         contest_id: selectedContest.id,
@@ -580,29 +589,39 @@ export default function Contests() {
         // Upload multiple photos and videos for mixed media contests
         const images = entryForm.mixed_media?.images || [];
         const videos = entryForm.mixed_media?.videos || [];
-        
+
         const imageUploads = images.map((img) => UploadFile({ file: img }));
-        const videoUploads = videos.map((video) => uploadToVercelBlob(
+
+        setUploadProgress(0);
+        const totalVideos = videos.length;
+        const videoProgress = new Array(totalVideos).fill(0);
+
+        const videoUploads = videos.map((video, idx) => uploadToVercelBlob(
           video,
-          { kind: 'contest_video', contestId: selectedContest.id }
+          { kind: 'contest_video', contestId: selectedContest.id },
+          (percent) => {
+            videoProgress[idx] = percent;
+            const totalAvg = Math.round(videoProgress.reduce((a, b) => a + b, 0) / totalVideos);
+            setUploadProgress(totalAvg);
+          }
         ));
-        
+
         const imageResults = await Promise.all(imageUploads);
         const videoResults = await Promise.all(videoUploads);
-        
+
         // Create structured media_urls array with type information
         const imageUrls = imageResults.map((r, idx) => ({
           url: r.file_url,
           type: 'image',
           name: images[idx]?.name || `image_${idx + 1}`
         }));
-        
+
         const videoUrls = videoResults.map((r, idx) => ({
           url: r,
-          type: 'video', 
+          type: 'video',
           name: videos[idx]?.name || `video_${idx + 1}`
         }));
-        
+
         // Combine all media URLs as simple array
         mediaUrls = [...imageResults.map(r => r.file_url), ...videoResults].filter(Boolean);
         primaryUrl = imageResults[0]?.file_url; // Use first image as primary
@@ -612,16 +631,18 @@ export default function Contests() {
         mediaUrls = results.map(r => r.file_url).filter(Boolean);
         primaryUrl = mediaUrls[0];
       } else {
+        setUploadProgress(0);
         const url = await uploadToVercelBlob(
           entryForm.file,
-          { kind: 'contest_video', contestId: selectedContest.id }
+          { kind: 'contest_video', contestId: selectedContest.id },
+          (percent) => setUploadProgress(percent)
         );
         primaryUrl = url;
       }
-      
+
       // Upload payment screenshot
       const { file_url: payment_url } = await UploadFile({ file: entryForm.payment_screenshot, category: 'payment_proofs' });
-      
+
       // Call AI Judge to compute AI score for the uploaded media
       const AI_JUDGE_URL = import.meta.env.VITE_AI_JUDGE_URL;
       const ENABLE_AI = String(import.meta.env.VITE_ENABLE_AI || '').toLowerCase() === 'true';
@@ -648,7 +669,7 @@ export default function Contests() {
           // Fail closed to 0 without blocking submission
         }
       }
-      
+
       // Create entry and mark as waiting for approval
       await Entry.create({
         contest_id: selectedContest.id,
@@ -669,7 +690,7 @@ export default function Contests() {
 
       setPaymentStep('uploaded');
       loadData();
-      
+
     } catch (error) {
       console.error('Error submitting entry:', error);
       alert('Error submitting entry. Please try again.');
@@ -745,68 +766,68 @@ export default function Contests() {
           {['upcoming', 'ongoing', 'completed', 'my'].map(status => (
             <TabsContent key={status} value={status}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {filterContests(status).map((contest) => (
-                   <Card key={contest.id} className="glass-card card-hover gradient-border group">
-                     <div>
-                       <div className="relative overflow-hidden rounded-t-lg">
-                         <img 
-                           src={contest.banner_image || `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=300&fit=crop`}
-                           alt={contest.title}
-                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                         />
-                         <Badge className={`absolute top-4 right-4 ${getStatusColor(getContestStatus(contest))}`}>
-                           {getContestStatus(contest)}
-                         </Badge>
-                       </div>
-                       <CardContent className="p-6">
-                         <h3 className="text-xl font-bold text-white mb-2">{contest.title}</h3>
-                         <p className="text-slate-400 mb-4 line-clamp-3">{contest.description}</p>
-                         
-                         <div className="space-y-2 mb-4">
-                           <div className="flex items-center justify-between text-sm">
-                             <span className="text-slate-400">Entry Fee</span>
-                             <span className="text-white font-semibold">₹{contest.entry_fee}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-sm">
-                             <span className="text-slate-400">Prize Pool</span>
-                             <span className="text-green-400 font-semibold">₹{contest.prize_pool}</span>
-                           </div>
-                           <div className="flex items-center justify-between text-sm">
-                             <span className="text-slate-400">Ends</span>
-                             <span className="text-white">{format(new Date(contest.end_date), 'MMM d, yyyy')}</span>
-                           </div>
-                         </div>
+                {filterContests(status).map((contest) => (
+                  <Card key={contest.id} className="glass-card card-hover gradient-border group">
+                    <div>
+                      <div className="relative overflow-hidden rounded-t-lg">
+                        <img
+                          src={contest.banner_image || `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=300&fit=crop`}
+                          alt={contest.title}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <Badge className={`absolute top-4 right-4 ${getStatusColor(getContestStatus(contest))}`}>
+                          {getContestStatus(contest)}
+                        </Badge>
+                      </div>
+                      <CardContent className="p-6">
+                        <h3 className="text-xl font-bold text-white mb-2">{contest.title}</h3>
+                        <p className="text-slate-400 mb-4 line-clamp-3">{contest.description}</p>
 
-                         <Button 
-                           className="w-full btn-primary"
-                           onClick={() => handleJoinContest(contest)}
-                           disabled={getContestStatus(contest) === 'completed'}
-                         >
-                           {getContestStatus(contest) === 'completed' 
-                             ? 'Contest Ended' 
-                             : myEntries.some(entry => entry.contest_id === contest.id)
-                               ? 'Already Joined'
-                               : 'Join Contest'
-                           }
-                         </Button>
-                         {(() => {
-                           const adminCheck = isAdmin();
-                           console.log(`Admin check for contest ${contest.id}:`, adminCheck, 'user:', user);
-                           return adminCheck && (
-                           <div className="mt-3 grid grid-cols-2 gap-3">
-                             <Button variant="outline" className="border-slate-600 text-slate-200" onClick={() => handleEditContest(contest)}>
-                               Edit
-                             </Button>
-                             <Button variant="destructive" onClick={() => handleDeleteContest(contest)}>
-                               Delete
-                             </Button>
-                           </div>
-                           );
-                         })()}
-                       </CardContent>
-                     </div>
-                   </Card>
-                 ))}
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-400">Entry Fee</span>
+                            <span className="text-white font-semibold">₹{contest.entry_fee}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-400">Prize Pool</span>
+                            <span className="text-green-400 font-semibold">₹{contest.prize_pool}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-400">Ends</span>
+                            <span className="text-white">{format(new Date(contest.end_date), 'MMM d, yyyy')}</span>
+                          </div>
+                        </div>
+
+                        <Button
+                          className="w-full btn-primary"
+                          onClick={() => handleJoinContest(contest)}
+                          disabled={getContestStatus(contest) === 'completed'}
+                        >
+                          {getContestStatus(contest) === 'completed'
+                            ? 'Contest Ended'
+                            : myEntries.some(entry => entry.contest_id === contest.id)
+                              ? 'Already Joined'
+                              : 'Join Contest'
+                          }
+                        </Button>
+                        {(() => {
+                          const adminCheck = isAdmin();
+                          console.log(`Admin check for contest ${contest.id}:`, adminCheck, 'user:', user);
+                          return adminCheck && (
+                            <div className="mt-3 grid grid-cols-2 gap-3">
+                              <Button variant="outline" className="border-slate-600 text-slate-200" onClick={() => handleEditContest(contest)}>
+                                Edit
+                              </Button>
+                              <Button variant="destructive" onClick={() => handleDeleteContest(contest)}>
+                                Delete
+                              </Button>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </div>
+                  </Card>
+                ))}
               </div>
             </TabsContent>
           ))}
@@ -814,13 +835,13 @@ export default function Contests() {
 
         {/* Join Contest Dialog */}
         <Dialog open={joinDialogOpen} onOpenChange={closeDialog}>
-          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg">
+          <DialogContent className="bg-slate-900 border-slate-700 text-white max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl gradient-text">
                 Join Contest: {selectedContest?.title}
               </DialogTitle>
             </DialogHeader>
-            
+
             {paymentStep === 'details' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 glass-effect rounded-lg border border-slate-700/50">
@@ -907,10 +928,10 @@ export default function Contests() {
                                 const minPhotos = selectedContest.required_photos || 1;
                                 const maxPhotos = selectedContest.max_photos_allowed || 3;
                                 console.log('minPhotos:', minPhotos, 'maxPhotos:', maxPhotos);
-                                
+
                                 const currentImages = entryForm.mixed_media?.images || [];
                                 const newImages = [...currentImages, ...files];
-                                
+
                                 if (newImages.length >= minPhotos && newImages.length <= maxPhotos) {
                                   console.log('Setting images to:', newImages);
                                   setEntryForm(prev => {
@@ -931,15 +952,15 @@ export default function Contests() {
                             {entryForm.mixed_media?.images?.length > 0 && (
                               <div className="mt-2">
                                 <p className="text-xs text-slate-400">
-                                  {entryForm.mixed_media.images.length} photo(s) selected 
+                                  {entryForm.mixed_media.images.length} photo(s) selected
                                   (Required: {selectedContest.required_photos || 1}, Max: {selectedContest.max_photos_allowed || 3})
                                 </p>
                                 <div className="mt-2 grid grid-cols-3 gap-2">
                                   {entryForm.mixed_media.images.map((file, idx) => (
                                     <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
-                                      <img src={URL.createObjectURL(file)} alt={`photo ${idx+1}`} className="w-full h-16 object-cover" />
-                                      <button 
-                                        type="button" 
+                                      <img src={URL.createObjectURL(file)} alt={`photo ${idx + 1}`} className="w-full h-16 object-cover" />
+                                      <button
+                                        type="button"
                                         onClick={() => {
                                           const newImages = entryForm.mixed_media?.images?.filter((_, i) => i !== idx) || [];
                                           setEntryForm(prev => ({
@@ -957,7 +978,7 @@ export default function Contests() {
                               </div>
                             )}
                           </div>
-                          
+
                           <div>
                             <Label className="text-sm">
                               Upload Videos ({selectedContest.required_videos || 1} video{selectedContest.required_videos > 1 ? 's' : ''} required)
@@ -970,10 +991,10 @@ export default function Contests() {
                                 const files = Array.from(e.target.files || []);
                                 const requiredVideos = selectedContest.required_videos || 1;
                                 const maxVideos = selectedContest.max_videos_allowed || 1;
-                                
-                                const currentVideos = entryForm.mixed_media.videos || [];
+
+                                const currentVideos = entryForm.mixed_media?.videos || [];
                                 const newVideos = [...currentVideos, ...files];
-                                
+
                                 if (newVideos.length >= requiredVideos && newVideos.length <= maxVideos) {
                                   setEntryForm(prev => ({
                                     ...prev,
@@ -985,7 +1006,7 @@ export default function Contests() {
                               }}
                               className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                             />
-                            {entryForm.mixed_media.videos?.length > 0 && (
+                            {entryForm.mixed_media?.videos?.length > 0 && (
                               <div className="mt-2">
                                 <p className="text-xs text-slate-400">
                                   {entryForm.mixed_media.videos.length} video(s) selected
@@ -995,10 +1016,10 @@ export default function Contests() {
                                   {entryForm.mixed_media.videos.map((file, idx) => (
                                     <div key={idx} className="flex items-center justify-between bg-slate-800/60 px-3 py-2 rounded border border-slate-700">
                                       <span className="text-sm text-slate-300 truncate">{file.name}</span>
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         onClick={() => {
-                                          const newVideos = entryForm.mixed_media.videos.filter((_, i) => i !== idx);
+                                          const newVideos = entryForm.mixed_media?.videos?.filter((_, i) => i !== idx) || [];
                                           setEntryForm(prev => ({
                                             ...prev,
                                             mixed_media: { ...prev.mixed_media, videos: newVideos }
@@ -1024,7 +1045,7 @@ export default function Contests() {
                           className="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
                         />
                       )}
-                      
+
                       {entryForm.media_type === 'image' && selectedContest?.media_type !== 'both' ? (
                         <>
                           <p className="text-xs text-slate-400 mt-2">
@@ -1034,7 +1055,7 @@ export default function Contests() {
                             <div className="mt-3 grid grid-cols-3 gap-2">
                               {imagePreviews.map((src, idx) => (
                                 <div key={idx} className="relative rounded overflow-hidden border border-slate-700">
-                                  <img src={src} alt={`selected ${idx+1}`} className="w-full h-24 object-cover" />
+                                  <img src={src} alt={`selected ${idx + 1}`} className="w-full h-24 object-cover" />
                                   <button
                                     type="button"
                                     onClick={() => removeImageAt(idx)}
@@ -1060,48 +1081,48 @@ export default function Contests() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
+                  <Button
+                    variant="outline"
+                    className="flex-1"
                     onClick={closeDialog}
                   >
                     Cancel
                   </Button>
-                   <Button
-                      className="flex-1 btn-primary"
-                      onClick={proceedToPayment}
-                      disabled={
-                        !entryForm.title ||
-                        (selectedContest?.media_type === 'both'
-                          ? (!entryForm.mixed_media?.videos || entryForm.mixed_media.videos.length === 0 || !entryForm.mixed_media?.images || entryForm.mixed_media.images.length === 0)
-                          : entryForm.media_type === 'image'
-                            ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
-                            : !entryForm.file)
-                      }
-                    >
-                     {selectedContest?.entry_fee === 0 ? (
-                       <>
-                         Join with {
-                           selectedContest?.media_type === 'both' 
-                             ? (entryForm.mixed_media?.videos && entryForm.mixed_media?.images ? `${entryForm.mixed_media.images.length} photos + ${entryForm.mixed_media.videos.length} video${entryForm.mixed_media.videos.length > 1 ? 's' : ''}` : '0 files')
-                             : entryForm.media_type === 'image' 
-                               ? (entryForm.images?.length || 0) 
-                               : 1
-                         } of {
-                           selectedContest?.media_type === 'both'
-                             ? `${selectedContest.required_photos || 1}-${selectedContest.max_photos_allowed || 3} photos + ${selectedContest.required_videos || 1}-${selectedContest.max_videos_allowed || 1} video${(selectedContest.max_videos_allowed || 1) > 1 ? 's' : ''}`
-                             : entryForm.media_type === 'image'
-                               ? Number(selectedContest?.max_photos_per_entry || 1)
-                               : 1
-                         }
-                       </>
-                     ) : (
-                       <>
-                         <QrCode className="w-4 h-4 mr-2" />
-                         Proceed to Payment
-                       </>
-                     )}
-                   </Button>
+                  <Button
+                    className="flex-1 btn-primary"
+                    onClick={proceedToPayment}
+                    disabled={
+                      !entryForm.title ||
+                      (selectedContest?.media_type === 'both'
+                        ? (!entryForm.mixed_media?.videos || entryForm.mixed_media.videos.length === 0 || !entryForm.mixed_media?.images || entryForm.mixed_media.images.length === 0)
+                        : entryForm.media_type === 'image'
+                          ? (entryForm.images?.length || 0) !== Number(selectedContest?.max_photos_per_entry || 1)
+                          : !entryForm.file)
+                    }
+                  >
+                    {selectedContest?.entry_fee === 0 ? (
+                      <>
+                        Join with {
+                          selectedContest?.media_type === 'both'
+                            ? (entryForm.mixed_media?.videos && entryForm.mixed_media?.images ? `${entryForm.mixed_media.images.length} photos + ${entryForm.mixed_media.videos.length} video${entryForm.mixed_media.videos.length > 1 ? 's' : ''}` : '0 files')
+                            : entryForm.media_type === 'image'
+                              ? (entryForm.images?.length || 0)
+                              : 1
+                        } of {
+                          selectedContest?.media_type === 'both'
+                            ? `${selectedContest.required_photos || 1}-${selectedContest.max_photos_allowed || 3} photos + ${selectedContest.required_videos || 1}-${selectedContest.max_videos_allowed || 1} video${(selectedContest.max_videos_allowed || 1) > 1 ? 's' : ''}`
+                            : entryForm.media_type === 'image'
+                              ? Number(selectedContest?.max_photos_per_entry || 1)
+                              : 1
+                        }
+                      </>
+                    ) : (
+                      <>
+                        <QrCode className="w-4 h-4 mr-2" />
+                        Proceed to Payment
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             )}
@@ -1111,7 +1132,7 @@ export default function Contests() {
                 <div className="text-center">
                   <h3 className="text-xl font-bold text-white mb-4">Complete Payment</h3>
                   <div className="bg-white p-4 rounded-lg inline-block">
-                    <img 
+                    <img
                       src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68c7b613b5f93c0f8691117d/b175f03de_image.png" // Placeholder QR code
                       alt="Payment QR Code"
                       className="w-48 h-48 mx-auto"
@@ -1139,30 +1160,36 @@ export default function Contests() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
+                  <Button
+                    variant="outline"
+                    className="flex-1"
                     onClick={() => setPaymentStep('details')}
                   >
                     Back
                   </Button>
-                   <Button
-                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-                     onClick={submitPaymentProof}
-                     disabled={!entryForm.payment_screenshot || uploading}
-                   >
-                     {uploading ? (
-                       <>
-                         <Upload className="w-4 h-4 mr-2 animate-spin" />
-                         Submitting...
-                       </>
-                     ) : (
-                       <>
-                         <CheckCircle className="w-4 h-4 mr-2" />
-                         Submit for Approval
-                       </>
-                     )}
-                   </Button>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    onClick={submitPaymentProof}
+                    disabled={!entryForm.payment_screenshot || uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <Upload className="w-4 h-4 mr-2 animate-spin" />
+                        {uploadProgress > 0 ? `Uploading Video ${uploadProgress}%` : 'Submitting...'}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Submit for Approval
+                      </>
+                    )}
+                  </Button>
+
+                  {uploading && uploadProgress > 0 && (
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
+                      <div className="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1177,14 +1204,14 @@ export default function Contests() {
                   <p className="text-slate-300 mb-4">
                     Your creative work and payment proof have been submitted our team will verify it. You're all set—good luck!
                   </p>
-                  
+
                 </div>
-                 <Button
-                   className="btn-primary"
-                   onClick={closeDialog}
-                 >
-                   Continue Browsing
-                 </Button>
+                <Button
+                  className="btn-primary"
+                  onClick={closeDialog}
+                >
+                  Continue Browsing
+                </Button>
               </div>
             )}
           </DialogContent>

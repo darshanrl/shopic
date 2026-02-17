@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import ReactPlayer from 'react-player';
 
 export default function Feed() {
   const [entries, setEntries] = useState([]);
@@ -58,7 +59,7 @@ export default function Feed() {
         Like.list(),
         User.list()
       ]);
-      
+
       setEntries(entriesData);
       setContests(contestsData);
       setUser(userData);
@@ -70,11 +71,11 @@ export default function Feed() {
         const entryComments = await Comment.filter({ entry_id: entry.id });
         return { [entry.id]: entryComments };
       });
-      
+
       const commentResults = await Promise.all(commentPromises);
       const commentsMap = commentResults.reduce((acc, curr) => ({ ...acc, ...curr }), {});
       setComments(commentsMap);
-      
+
     } catch (error) {
       console.error('Error loading feed:', error);
     }
@@ -101,7 +102,7 @@ export default function Feed() {
     }
 
     try {
-      const existingLike = likes.find(like => 
+      const existingLike = likes.find(like =>
         like.entry_id === entryId && like.user_id === user.id
       );
 
@@ -191,8 +192,8 @@ export default function Feed() {
   const sortedEntries = () => {
     switch (activeTab) {
       case 'trending':
-        return [...entries].sort((a, b) => 
-          (b.likes_count || 0) + (b.comments_count || 0) - 
+        return [...entries].sort((a, b) =>
+          (b.likes_count || 0) + (b.comments_count || 0) -
           (a.likes_count || 0) - (a.comments_count || 0)
         );
       case 'images':
@@ -260,48 +261,149 @@ export default function Feed() {
 
                   return (
                     <Card key={entry.id} className="glass-effect border-slate-700/50 overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center hover:opacity-90">
-                            <span className="text-white font-semibold text-sm">
-                              {entryUserInitial}
-                            </span>
-                          </button>
-                          <div>
-                            <h3 className="font-semibold text-white">{entry.title}</h3>
-                            <p className="text-sm text-slate-400">
-                              by <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="font-medium text-slate-200 hover:underline">
-                                {entryUserName}
-                              </button> in {getContestTitle(entry.contest_id)}
-                            </p>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center hover:opacity-90">
+                              <span className="text-white font-semibold text-sm">
+                                {entryUserInitial}
+                              </span>
+                            </button>
+                            <div>
+                              <h3 className="font-semibold text-white">{entry.title}</h3>
+                              <p className="text-sm text-slate-400">
+                                by <button type="button" onClick={() => navigate(`/profile/${entry.user_id}`)} className="font-medium text-slate-200 hover:underline">
+                                  {entryUserName}
+                                </button> in {getContestTitle(entry.contest_id)}
+                              </p>
+                            </div>
                           </div>
+                          <Badge
+                            className={`${entry.media_type === 'video'
+                              ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                              : entry.media_type === 'both'
+                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                                : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
+                          >
+                            {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : entry.media_type === 'both' ? <Layers className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
+                            {entry.media_type}
+                          </Badge>
                         </div>
-                        <Badge 
-                          className={`${entry.media_type === 'video' 
-                            ? 'bg-red-500/20 text-red-300 border-red-500/30' 
-                            : entry.media_type === 'both'
-                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                              : 'bg-blue-500/20 text-blue-300 border-blue-500/30'}`}
-                        >
-                          {entry.media_type === 'video' ? <Play className="w-3 h-3 mr-1" /> : entry.media_type === 'both' ? <Layers className="w-3 h-3 mr-1" /> : <Camera className="w-3 h-3 mr-1" />}
-                          {entry.media_type}
-                        </Badge>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
 
-                    <div className="relative">
-                      {entry.media_type === 'video' ? (
-                        <video 
-                          controls 
-                          className="w-full max-h-96 object-contain bg-black"
-                          poster={entry.media_url}
-                        >
-                          <source src={entry.media_url} type="video/mp4" />
-                        </video>
-                      ) : entry.media_type === 'both' ? (
-                        // Mixed media: show carousel with images and videos
-                        Array.isArray(entry.media_urls) && entry.media_urls.length > 0 ? (
+                      <div className="relative">
+                        {entry.media_type === 'video' ? (
+                          <div className="w-full bg-slate-900 rounded-lg overflow-hidden relative group">
+                            <div className="w-full h-96 flex items-center justify-center bg-black">
+                              <ReactPlayer
+                                url={entry.media_url}
+                                controls
+                                width="100%"
+                                height="100%"
+                                style={{ maxHeight: '24rem' }}
+                                config={{
+                                  file: {
+                                    attributes: {
+                                      controlsList: 'nodownload',
+                                      disablePictureInPicture: true,
+                                    }
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <a
+                                href={entry.media_url}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-black/60 hover:bg-black/80 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm flex items-center gap-2"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                                Download
+                              </a>
+                            </div>
+                          </div>
+                        ) : entry.media_type === 'both' ? (
+                          // Mixed media: show carousel with images and videos
+                          Array.isArray(entry.media_urls) && entry.media_urls.length > 0 ? (
+                            <div className="relative">
+                              <div
+                                className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
+                                onScroll={(e) => onCarouselScroll(entry.id, e)}
+                              >
+                                {entry.media_urls.map((item, i) => {
+                                  // Handle both old structured format and new simple URL format
+                                  const url = typeof item === 'string' ? item : (item?.url || item?.public_url || item?.file_url);
+                                  const isVideo = (typeof item === 'object' && item?.type === 'video') ||
+                                    (typeof url === 'string' && (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm')));
+
+                                  return (
+                                    <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
+                                      {isVideo ? (
+                                        <div className="w-full">
+                                          <div className="w-full bg-slate-900 rounded-lg overflow-hidden relative group">
+                                            <div className="w-full h-96 flex items-center justify-center bg-black">
+                                              <div className="w-full h-96 flex items-center justify-center bg-black">
+                                                <video
+                                                  src={url}
+                                                  controls
+                                                  className="w-full h-full object-contain"
+                                                  playsInline
+                                                  preload="metadata"
+                                                  controlsList="nodownload"
+                                                  disablePictureInPicture
+                                                >
+                                                  <p>Your browser does not support the video tag.</p>
+                                                </video>
+                                              </div>
+                                            </div>
+                                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              <a
+                                                href={url}
+                                                download
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="bg-black/60 hover:bg-black/80 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm flex items-center gap-2"
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                                                Download
+                                              </a>
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      ) : (
+                                        <img
+                                          src={url}
+                                          alt={`${entry.title} ${i + 1}`}
+                                          className="w-full max-h-96 object-contain"
+                                        />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                                {(Number(carouselIndex[entry.id] || 0) + 1)} / {entry.media_urls.length}
+                              </div>
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                                {entry.media_urls.map((_, i) => (
+                                  <span
+                                    key={i}
+                                    className={`h-1.5 w-1.5 rounded-full ${i === Number(carouselIndex[entry.id] || 0) ? 'bg-white' : 'bg-white/40'}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={entry.media_url}
+                              alt={entry.title}
+                              className="w-full max-h-96 object-contain"
+                            />
+                          )
+                        ) : Array.isArray(entry.media_urls) && entry.media_urls.length > 1 ? (
                           <div className="relative">
                             <div
                               className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
@@ -309,25 +411,14 @@ export default function Feed() {
                             >
                               {entry.media_urls.map((item, i) => {
                                 // Handle both old structured format and new simple URL format
-                                const url = typeof item === 'string' ? item : item?.url;
-                                const isVideo = typeof url === 'string' && (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm'));
+                                const url = typeof item === 'string' ? item : (item?.url || item?.public_url || item?.file_url);
                                 return (
                                   <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
-                                    {isVideo ? (
-                                      <video 
-                                        controls 
-                                        className="w-full max-h-96 object-contain bg-black"
-                                        poster={entry.media_url}
-                                      >
-                                        <source src={url} type="video/mp4" />
-                                      </video>
-                                    ) : (
-                                      <img
-                                        src={url}
-                                        alt={`${entry.title} ${i + 1}`}
-                                        className="w-full max-h-96 object-contain"
-                                      />
-                                    )}
+                                    <img
+                                      src={url}
+                                      alt={`${entry.title} ${i + 1}`}
+                                      className="w-full max-h-96 object-contain"
+                                    />
                                   </div>
                                 );
                               })}
@@ -346,127 +437,88 @@ export default function Feed() {
                           </div>
                         ) : (
                           <img
-                            src={entry.media_url}
+                            src={entry.media_url || `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=400&fit=crop`}
                             alt={entry.title}
-                            className="w-full max-h-96 object-contain"
+                            className="w-full max-h-96 object-contain bg-slate-800"
                           />
-                        )
-                      ) : Array.isArray(entry.media_urls) && entry.media_urls.length > 1 ? (
-                        <div className="relative">
-                          <div
-                            className="w-full overflow-x-auto flex snap-x snap-mandatory scroll-smooth no-scrollbar"
-                            onScroll={(e) => onCarouselScroll(entry.id, e)}
-                          >
-                            {entry.media_urls.map((item, i) => {
-                              // Handle both old structured format and new simple URL format
-                              const url = typeof item === 'string' ? item : item?.url;
-                              return (
-                                <div key={i} className="min-w-full snap-center flex justify-center items-center bg-slate-800">
-                                  <img
-                                    src={url}
-                                    alt={`${entry.title} ${i + 1}`}
-                                    className="w-full max-h-96 object-contain"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                            {(Number(carouselIndex[entry.id] || 0) + 1)} / {entry.media_urls.length}
-                          </div>
-                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                            {entry.media_urls.map((_, i) => (
-                              <span
-                                key={i}
-                                className={`h-1.5 w-1.5 rounded-full ${i === Number(carouselIndex[entry.id] || 0) ? 'bg-white' : 'bg-white/40'}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <img 
-                          src={entry.media_url || `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&h=400&fit=crop`}
-                          alt={entry.title}
-                          className="w-full max-h-96 object-contain bg-slate-800"
-                        />
-                      )}
-                    </div>
-
-                    <CardContent className="p-6">
-                      <p className="text-slate-300 mb-4">{entry.caption}</p>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleLike(entry.id)}
-                            className={`gap-2 ${isLikedByUser(entry.id) ? 'text-red-400' : 'text-slate-400'}`}
-                          >
-                            <Heart className={`w-5 h-5 ${isLikedByUser(entry.id) ? 'fill-current' : ''}`} />
-                            {likes.filter(like => like.entry_id === entry.id).length}
-                          </Button>
-                          <Button variant="ghost" size="sm" className="gap-2 text-slate-400">
-                            <MessageCircle className="w-5 h-5" />
-                            {comments[entry.id]?.length || 0}
-                          </Button>
-                          {(user?.id === entry.user_id || isAdmin) && (
-                            <>
-                              <Button variant="outline" size="sm" onClick={() => handleEditEntry(entry)} className="text-slate-300 border-slate-600">Edit</Button>
-                              <Button variant="destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>Delete</Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Comments section */}
-                      <div className="space-y-3">
-                        {comments[entry.id]?.slice(0, 2).map((comment) => {
-                          const commentUser = users.find(u => u.id === comment.user_id);
-                          const userName = commentUser?.full_name || commentUser?.email?.split('@')[0] || 'Unknown User';
-                          const userInitial = userName?.[0]?.toUpperCase() || 'U';
-                          const canDeleteComment = user?.id === comment.user_id || isAdmin;
-
-                          return (
-                            <div key={comment.id} className="flex items-start gap-2 text-sm">
-                              <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs font-semibold">
-                                  {userInitial}
-                                </span>
-                              </div>
-                              <div className="flex-1">
-                                <button type="button" onClick={() => navigate(`/profile/${comment.user_id}`)} className="text-white font-medium hover:underline">{userName}</button>
-                                <span className="text-slate-300 ml-2">{comment.content}</span>
-                              </div>
-                              {canDeleteComment && (
-                                <Button variant="ghost" size="sm" className="text-red-400" onClick={() => handleDeleteComment(entry.id, comment.id)}>Delete</Button>
-                              )}
-                            </div>
-                          )
-                        })}
-
-                        {user && (
-                          <div className="flex items-center gap-2 mt-4">
-                            <Input
-                              placeholder="Add a comment..."
-                              value={newComment[entry.id] || ''}
-                              onChange={(e) => setNewComment(prev => ({ ...prev, [entry.id]: e.target.value }))}
-                              className="bg-slate-800 border-slate-600 text-white flex-1"
-                              onKeyPress={(e) => e.key === 'Enter' && handleComment(entry.id)}
-                            />
-                            <Button
-                              size="icon"
-                              onClick={() => handleComment(entry.id)}
-                              disabled={!newComment[entry.id]}
-                              className="bg-purple-500 hover:bg-purple-600"
-                            >
-                              <Send className="w-4 h-4" />
-                            </Button>
-                          </div>
                         )}
                       </div>
-                    </CardContent>
+
+                      <CardContent className="p-6">
+                        <p className="text-slate-300 mb-4">{entry.caption}</p>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleLike(entry.id)}
+                              className={`gap-2 ${isLikedByUser(entry.id) ? 'text-red-400' : 'text-slate-400'}`}
+                            >
+                              <Heart className={`w-5 h-5 ${isLikedByUser(entry.id) ? 'fill-current' : ''}`} />
+                              {likes.filter(like => like.entry_id === entry.id).length}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="gap-2 text-slate-400">
+                              <MessageCircle className="w-5 h-5" />
+                              {comments[entry.id]?.length || 0}
+                            </Button>
+                            {(user?.id === entry.user_id || isAdmin) && (
+                              <>
+                                <Button variant="outline" size="sm" onClick={() => handleEditEntry(entry)} className="text-slate-300 border-slate-600">Edit</Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>Delete</Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Comments section */}
+                        <div className="space-y-3">
+                          {comments[entry.id]?.slice(0, 2).map((comment) => {
+                            const commentUser = users.find(u => u.id === comment.user_id);
+                            const userName = commentUser?.full_name || commentUser?.email?.split('@')[0] || 'Unknown User';
+                            const userInitial = userName?.[0]?.toUpperCase() || 'U';
+                            const canDeleteComment = user?.id === comment.user_id || isAdmin;
+
+                            return (
+                              <div key={comment.id} className="flex items-start gap-2 text-sm">
+                                <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-xs font-semibold">
+                                    {userInitial}
+                                  </span>
+                                </div>
+                                <div className="flex-1">
+                                  <button type="button" onClick={() => navigate(`/profile/${comment.user_id}`)} className="text-white font-medium hover:underline">{userName}</button>
+                                  <span className="text-slate-300 ml-2">{comment.content}</span>
+                                </div>
+                                {canDeleteComment && (
+                                  <Button variant="ghost" size="sm" className="text-red-400" onClick={() => handleDeleteComment(entry.id, comment.id)}>Delete</Button>
+                                )}
+                              </div>
+                            )
+                          })}
+
+                          {user && (
+                            <div className="flex items-center gap-2 mt-4">
+                              <Input
+                                placeholder="Add a comment..."
+                                value={newComment[entry.id] || ''}
+                                onChange={(e) => setNewComment(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                                className="bg-slate-800 border-slate-600 text-white flex-1"
+                                onKeyPress={(e) => e.key === 'Enter' && handleComment(entry.id)}
+                              />
+                              <Button
+                                size="icon"
+                                onClick={() => handleComment(entry.id)}
+                                disabled={!newComment[entry.id]}
+                                className="bg-purple-500 hover:bg-purple-600"
+                              >
+                                <Send className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
                     </Card>
                   );
                 })}
@@ -478,7 +530,7 @@ export default function Feed() {
         {!user && (
           <div className="text-center py-8">
             <p className="text-slate-300 mb-4">Sign in to like and comment on posts</p>
-            <Button 
+            <Button
               onClick={() => User.login()}
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
