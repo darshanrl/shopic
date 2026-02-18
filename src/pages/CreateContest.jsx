@@ -145,13 +145,28 @@ export default function CreateContest() {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         max_participants: formData.max_participants,
-        max_photos_per_entry: formData.max_photos_allowed || formData.max_photos_per_entry || 1, // Map frontend field to DB column
+        max_photos_per_entry: formData.max_photos_allowed || formData.max_photos_per_entry || 1,
         prize_pool: formData.prize_pool,
         rules: formData.rules,
         status: 'upcoming',
         created_by: (await User.me()).id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // Add constraint fields - Moved to settings to avoid schema errors
+        // required_photos: formData.required_photos || 1,
+        // required_videos: formData.required_videos || 0,
+        // max_videos_allowed: formData.max_videos_allowed || 1,
+
+        // Fallback settings object in case columns are missing (future proofing)
+        // NOTE: Commenting out until 'settings' column is added to DB via migration
+        /*
+        settings: {
+          required_photos: formData.required_photos || 1,
+          required_videos: formData.required_videos || 0,
+          max_videos_allowed: formData.max_videos_allowed || 1
+        }
+        */
       };
+
       // Note: tags, voting_end_date, required_photos, etc are not yet supported by DB schema
 
       console.log('Submitting contest data:', contestData);

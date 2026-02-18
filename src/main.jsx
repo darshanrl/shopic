@@ -8,6 +8,7 @@ import AdminRoute from './components/AdminRoute'
 import Layout from '@/Layout.jsx'
 import Dashboard from '@/pages/Dashboard.jsx'
 import Contests from '@/pages/Contests.jsx'
+import ContestDetails from '@/pages/ContestDetails.jsx' // Added ContestDetails
 import Feed from '@/pages/Feed.jsx'
 import Search from '@/pages/Search.jsx'
 import Profile from '@/pages/Profile.jsx'
@@ -20,7 +21,7 @@ import Register from './pages/Register.jsx'
 
 function App() {
   console.log('App component rendering...');
-  
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/profile/:userId" element={<UserProfile />} />
                   <Route path="/about" element={<AboutUs />} />
                   <Route path="/create-contest" element={<AdminRoute><CreateContest /></AdminRoute>} />
+                  <Route path="/contest/:contestId" element={<ContestDetails />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
@@ -73,8 +75,8 @@ class ErrorBoundary extends React.Component {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-4">Something went wrong</h1>
             <p className="text-slate-300 mb-4">Check the console for details</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600"
             >
               Reload App
