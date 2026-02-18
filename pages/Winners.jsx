@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Trophy, 
-  Medal, 
-  Award, 
+import {
+  Trophy,
+  Medal,
+  Award,
   Crown,
   Star,
   Calendar,
@@ -59,7 +59,7 @@ export default function Winners() {
         User.list(),
         Entry.list()
       ]);
-      
+
       setCertificates(certificatesData);
       setContests(contestsData);
       setUsers(usersData);
@@ -84,7 +84,7 @@ export default function Winners() {
       case 1: return <Crown className="w-6 h-6 text-yellow-400" />;
       case 2: return <Medal className="w-6 h-6 text-gray-400" />;
       case 3: return <Award className="w-6 h-6 text-amber-600" />;
-      default: return <Trophy className="w-6 h-6 text-purple-400" />;
+      default: return <Star className="w-6 h-6 text-purple-400" />;
     }
   };
 
@@ -93,17 +93,19 @@ export default function Winners() {
       case 1: return 'from-yellow-500 to-amber-500';
       case 2: return 'from-gray-400 to-slate-500';
       case 3: return 'from-amber-600 to-orange-600';
-      default: return 'from-purple-500 to-pink-500';
+      default: return 'from-slate-600 to-slate-700';
     }
   };
 
   const getPositionText = (position) => {
-    switch (position) {
-      case 1: return '1st Place';
-      case 2: return '2nd Place';
-      case 3: return '3rd Place';
-      default: return `${position}th Place`;
-    }
+    if (position === 1) return '1st Place';
+    if (position === 2) return '2nd Place';
+    if (position === 3) return '3rd Place';
+
+    // Handle ordinal suffix logic for 4th onwards
+    const s = ["th", "st", "nd", "rd"];
+    const v = position % 100;
+    return position + (s[(v - 20) % 10] || s[v] || s[0]) + " Place";
   };
 
   const groupedCertificates = certificates.reduce((acc, cert) => {
@@ -181,13 +183,13 @@ export default function Winners() {
       };
 
       await Certificate.create(certificateData);
-      
+
       // Update user's total earnings
       await User.updateTotalEarnings(entry.user_id);
-      
+
       // Reload data to show new winner
       await loadWinnersData();
-      
+
       alert(`Winner created successfully! Position: ${position}, Prize: ₹${prizeAmount}`);
     } catch (error) {
       console.error('Error creating winner:', error);
@@ -237,7 +239,7 @@ export default function Winners() {
               <p className="text-xl text-slate-300">Celebrating our creative champions and their achievements</p>
             </div>
             {isAdmin && (
-              <Button 
+              <Button
                 onClick={() => setShowManagement(!showManagement)}
                 className="bg-purple-500 hover:bg-purple-600 text-white"
               >
@@ -260,88 +262,106 @@ export default function Winners() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-3">Contest Winner Management</h3>
-                  {contests.filter(contest => {
-                    const contestWinners = getContestWinners(contest.id);
-                    return contestWinners.length < 3; // Show contests with less than 3 winners
-                  }).length === 0 ? (
-                    <p className="text-slate-400">All contests have full winner sets assigned.</p>
-                  ) : (
-                    <div className="grid gap-4">
-                      {contests.filter(contest => {
-                        const contestWinners = getContestWinners(contest.id);
-                        return contestWinners.length < 3; // Show contests with less than 3 winners
-                      }).map((contest) => {
-                        const contestEntries = getContestEntries(contest.id);
-                        const contestWinners = getContestWinners(contest.id);
-                        const existingPositions = contestWinners.map(w => w.position);
-                        
-                        return (
-                          <Card key={contest.id} className="bg-slate-800/50 border-slate-600/50">
-                            <CardContent className="p-4">
-                              <h4 className="font-semibold text-white mb-2">{contest.title}</h4>
-                              <p className="text-slate-400 text-sm mb-3">
-                                {contestEntries.length} entries • Prize Pool: ₹{contest.prize_pool || 0}
-                                {contestWinners.length > 0 && (
-                                  <span className="ml-2 text-green-400">• {contestWinners.length} winner(s) selected</span>
-                                )}
-                              </p>
-                              {contestEntries.length > 0 ? (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-slate-300">Select winners:</p>
-                                  <div className="grid gap-2">
-                                    {[1, 2, 3].map((position) => {
-                                      const isPositionTaken = existingPositions.includes(position);
-                                      const availableEntries = contestEntries.filter(entry => 
-                                        !isEntryAlreadyWinner(contest.id, entry.id)
-                                      );
-                                      
-                                      return (
-                                        <div key={position} className="flex items-center gap-2">
-                                          <Badge className={`bg-gradient-to-r ${getPositionColor(position)} text-white border-0`}>
-                                            {getPositionText(position)}
-                                          </Badge>
-                                          {isPositionTaken ? (
-                                            <div className="flex-1 bg-green-800/30 text-green-300 px-2 py-1 rounded text-sm">
-                                              ✓ Winner selected
-                                            </div>
-                                          ) : (
-                                            <select 
-                                              className="bg-slate-700 text-white rounded px-2 py-1 text-sm flex-1"
-                                              onChange={(e) => {
-                                                if (e.target.value) {
-                                                  const prizeAmount = position === 1 ? contest.prize_pool * 0.5 : 
-                                                                     position === 2 ? contest.prize_pool * 0.3 : 
-                                                                     contest.prize_pool * 0.2;
-                                                  handleCreateWinner(contest.id, e.target.value, position, Math.floor(prizeAmount));
-                                                  e.target.value = ""; // Reset dropdown
-                                                }
-                                              }}
-                                            >
-                                              <option value="">Select entry...</option>
-                                              {availableEntries.map((entry) => {
-                                                const user = getUserInfo(entry.user_id);
-                                                return (
-                                                  <option key={entry.id} value={entry.id}>
-                                                    {entry.title} - {user?.full_name || user?.email || 'Unknown User'}
-                                                  </option>
-                                                );
-                                              })}
-                                            </select>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-slate-500 text-sm">No entries for this contest</p>
+                  <div className="grid gap-4">
+                    {contests.map((contest) => {
+                      const contestEntries = getContestEntries(contest.id);
+                      const contestWinners = getContestWinners(contest.id).sort((a, b) => a.position - b.position);
+                      const nextPosition = contestWinners.length > 0
+                        ? Math.max(...contestWinners.map(w => w.position)) + 1
+                        : 1;
+
+                      // Available entries are those not already selected as winners
+                      const availableEntries = contestEntries.filter(entry =>
+                        !isEntryAlreadyWinner(contest.id, entry.id)
+                      );
+
+                      return (
+                        <Card key={contest.id} className="bg-slate-800/50 border-slate-600/50">
+                          <CardContent className="p-4">
+                            <h4 className="font-semibold text-white mb-2">{contest.title}</h4>
+                            <p className="text-slate-400 text-sm mb-3">
+                              {contestEntries.length} entries • Prize Pool: ₹{contest.prize_pool || 0}
+                              {contestWinners.length > 0 && (
+                                <span className="ml-2 text-green-400">• {contestWinners.length} winner(s) selected</span>
                               )}
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </p>
+
+                            {/* Existing Winners List */}
+                            <div className="space-y-2 mb-4">
+                              {contestWinners.map((winner) => {
+                                const user = getUserInfo(winner.user_id);
+                                return (
+                                  <div key={winner.id} className="flex items-center gap-2 bg-slate-700/30 p-2 rounded">
+                                    <Badge className={`bg-gradient-to-r ${getPositionColor(winner.position)} text-white border-0 w-24 justify-center`}>
+                                      {getPositionText(winner.position)}
+                                    </Badge>
+                                    <div className="flex-1 text-white text-sm">
+                                      {user?.full_name || 'Unknown User'}
+                                      <span className="text-slate-400 ml-2">
+                                        (₹{winner.prize_amount})
+                                      </span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteWinner(winner.id)}
+                                      className="text-red-400 hover:text-red-300 hover:bg-red-500/20 h-8 w-8 p-0"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Add New Winner Form */}
+                            {availableEntries.length > 0 ? (
+                              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-700">
+                                <Badge variant="outline" className="text-slate-400 border-slate-600 w-24 justify-center">
+                                  {getPositionText(nextPosition)}
+                                </Badge>
+                                <select
+                                  className="bg-slate-700 text-white rounded px-2 py-1 text-sm flex-1 h-9"
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      // Auto-calculate prize: 50% for 1st, 30% for 2nd, 20% for 3rd, others manual/0
+                                      let suggestedPrize = 0;
+                                      if (nextPosition === 1) suggestedPrize = contest.prize_pool * 0.5;
+                                      else if (nextPosition === 2) suggestedPrize = contest.prize_pool * 0.3;
+                                      else if (nextPosition === 3) suggestedPrize = contest.prize_pool * 0.2;
+
+                                      // Prompt for prize amount to allow flexibility
+                                      const prizeInput = prompt(`Enter prize amount for ${getPositionText(nextPosition)}:`, Math.floor(suggestedPrize));
+
+                                      if (prizeInput !== null) {
+                                        const finalPrize = parseInt(prizeInput) || 0;
+                                        handleCreateWinner(contest.id, e.target.value, nextPosition, finalPrize);
+                                        e.target.value = ""; // Reset dropdown
+                                      } else {
+                                        e.target.value = ""; // Reset if cancelled
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <option value="">+ Add Winner...</option>
+                                  {availableEntries.map((entry) => {
+                                    const user = getUserInfo(entry.user_id);
+                                    return (
+                                      <option key={entry.id} value={entry.id}>
+                                        {entry.title} - {user?.full_name || user?.email || 'Unknown User'}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </div>
+                            ) : (
+                              <p className="text-slate-500 text-sm mt-2">No more available entries to select.</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -372,7 +392,7 @@ export default function Winners() {
                 Object.keys(groupedCertificates).map((contestId) => {
                   const contestCertificates = groupedCertificates[contestId];
                   const contestTitle = getContestTitle(contestId);
-                  
+
                   return (
                     <Card key={contestId} className="glass-effect border-slate-700/50">
                       <CardHeader>
@@ -386,10 +406,10 @@ export default function Winners() {
                           {contestCertificates.map((certificate) => {
                             const user = getUserInfo(certificate.user_id);
                             const userInitial = user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';
-                            
+
                             return (
-                              <Card 
-                                key={certificate.id} 
+                              <Card
+                                key={certificate.id}
                                 className={`relative overflow-hidden border-2 border-transparent bg-gradient-to-br ${getPositionColor(certificate.position)}/10 hover:border-${certificate.position === 1 ? 'yellow' : certificate.position === 2 ? 'gray' : 'amber'}-500/50 transition-all duration-300 cursor-pointer group`}
                                 onClick={() => handleViewProfile(certificate.user_id)}
                               >
@@ -424,7 +444,7 @@ export default function Winners() {
                                     </Button>
                                   </div>
                                 )}
-                                
+
                                 <CardContent className="p-6 text-center">
                                   <div className="mb-4">
                                     <div className={`w-20 h-20 bg-gradient-to-r ${getPositionColor(certificate.position)} rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
@@ -439,7 +459,7 @@ export default function Winners() {
                                       {getPositionText(certificate.position)}
                                     </Badge>
                                   </div>
-                                  
+
                                   <div className="space-y-2 text-sm">
                                     <div className="flex items-center justify-center gap-2 text-green-400">
                                       <DollarSign className="w-4 h-4" />
@@ -450,11 +470,11 @@ export default function Winners() {
                                       <span>{format(new Date(certificate.created_at), 'MMM d, yyyy')}</span>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="mt-4 flex items-center justify-center gap-2">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className="text-white hover:bg-white/10 group-hover:bg-white/20 transition-colors"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -500,10 +520,10 @@ export default function Winners() {
                   const user = getUserInfo(certificate.user_id);
                   const userInitial = user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U';
                   const contestTitle = getContestTitle(certificate.contest_id);
-                  
+
                   return (
-                    <Card 
-                      key={certificate.id} 
+                    <Card
+                      key={certificate.id}
                       className="glass-effect border-slate-700/50 hover:border-purple-500/50 transition-all duration-300 cursor-pointer group"
                       onClick={() => handleViewProfile(certificate.user_id)}
                     >
@@ -522,7 +542,7 @@ export default function Winners() {
                           </div>
                           {getPositionIcon(certificate.position)}
                         </div>
-                        
+
                         <div className="flex items-center justify-between">
                           <Badge className={`bg-gradient-to-r ${getPositionColor(certificate.position)} text-white border-0`}>
                             {getPositionText(certificate.position)}
@@ -535,14 +555,14 @@ export default function Winners() {
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                          <Button 
+                          <Button
                             variant="ghost" size="sm"
                             onClick={(e) => { e.stopPropagation(); handleViewProfile(certificate.user_id); }}
                             className="text-white hover:bg-white/10"
                           >
                             <UserIcon className="w-4 h-4 mr-2" /> View Profile
                           </Button>
-                          <Button 
+                          <Button
                             variant="ghost" size="sm" asChild
                             onClick={(e) => e.stopPropagation()}
                             className="text-purple-300 hover:bg-purple-500/20"
@@ -589,11 +609,11 @@ export default function Winners() {
                       Upload certificate for {getUserInfo(selectedCertificate.user_id)?.full_name || 'Winner'}
                     </p>
                     <p className="text-sm text-slate-400 mb-4">
-                      Position: {getPositionText(selectedCertificate.position)} • 
+                      Position: {getPositionText(selectedCertificate.position)} •
                       Contest: {getContestTitle(selectedCertificate.contest_id)}
                     </p>
                   </div>
-                  
+
                   <div>
                     <input
                       type="file"
