@@ -224,25 +224,27 @@ export default function Feed() {
           <p className="text-xl text-slate-300">Discover amazing creations from our community</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="bg-slate-800/50 border border-slate-700/50">
-            <TabsTrigger value="latest" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
-              <Clock className="w-4 h-4 mr-2" />
-              Latest
-            </TabsTrigger>
-            <TabsTrigger value="trending" className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-300">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Trending
-            </TabsTrigger>
-            <TabsTrigger value="images" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300">
-              <Camera className="w-4 h-4 mr-2" />
-              Images
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-300">
-              <Play className="w-4 h-4 mr-2" />
-              Videos
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8 w-full max-w-full">
+          <div className="w-full overflow-x-auto overflow-y-hidden pb-2 -mb-2 no-scrollbar">
+            <TabsList className="bg-slate-800/50 border border-slate-700/50 flex w-max min-w-full">
+              <TabsTrigger value="latest" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 flex-1 whitespace-nowrap">
+                <Clock className="w-4 h-4 mr-2" />
+                Latest
+              </TabsTrigger>
+              <TabsTrigger value="trending" className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-300 flex-1 whitespace-nowrap">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Trending
+              </TabsTrigger>
+              <TabsTrigger value="images" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300 flex-1 whitespace-nowrap">
+                <Camera className="w-4 h-4 mr-2" />
+                Images
+              </TabsTrigger>
+              <TabsTrigger value="videos" className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-300 flex-1 whitespace-nowrap">
+                <Play className="w-4 h-4 mr-2" />
+                Videos
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {['latest', 'trending', 'images', 'videos'].map(tab => (
             <TabsContent key={tab} value={tab}>

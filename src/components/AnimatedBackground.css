@@ -268,8 +268,8 @@
 }
 
 .left-bubble {
-  top: 15%;
-  left: 10%;
+  top: 30%;
+  left: 45%;
   animation: bubbleFloat 8s ease-in-out infinite;
   opacity: 0.4;
 }

@@ -6,13 +6,13 @@ export const Certificate = {
       .from('certificates')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     if (user_id) {
       query = query.eq('user_id', user_id)
     }
-    
+
     const { data, error } = await query
-    
+
     if (error) throw error
     return data || []
   },
@@ -27,9 +27,18 @@ export const Certificate = {
 
     if (!error) return data
 
-    // If SELECT is not allowed by RLS, retry with minimal returning so INSERT can still succeed
-    // Common PostgREST errors: permission denied (42501) or no rows (PGRST116) due to RLS
+    // Handle RLS "Select blocked" error (PGRST116: result contains 0 rows)
+    // This means Insert likely succeeded but we can't see the result.
+    if (error.code === 'PGRST116') {
+      console.warn('Certificate created but RLS prevented reading return value.')
+      return { ...certificateData }
+    }
+
+    // If it's a different error, we might try the fallback (though it's risky if the first one actually partially worked)
+    // For now, only retry if it looks like a genuine failure that isn't the above.
     console.error('Certificate.create error on select after insert:', error)
+
+    // Only use the retry with minimal returning if the error wasn't PGRST116
     const retry = await supabase
       .from('certificates')
       .insert(certificateData, { returning: 'minimal' })
@@ -50,7 +59,7 @@ export const Certificate = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -60,7 +69,7 @@ export const Certificate = {
       .from('certificates')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -71,7 +80,7 @@ export const Certificate = {
       .select('certificate_url')
       .eq('id', certificateId)
       .single()
-    
+
     if (error) throw error
     return data?.certificate_url
   }

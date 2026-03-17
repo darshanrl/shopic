@@ -210,7 +210,7 @@ export default function Dashboard() {
                   </div>
                   <CardContent className="p-6">
                     <h3 className="text-xl font-bold text-white mb-2">{contest.title}</h3>
-                    <p className="text-slate-400 mb-4 line-clamp-2">{contest.description}</p>
+                    <p className="text-slate-400 mb-4 line-clamp-2">{contest.description?.replace(/<[^>]*>?/gm, '') || ''}</p>
                     
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">

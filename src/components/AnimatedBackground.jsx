@@ -31,7 +31,7 @@ const AnimatedBackground = () => {
 
       {/* Animated Bubbles */}
       <div className="bubble-container">
-        {/* Left Bubble - Darshan */}
+        {/* Left Bubble - ShoPic */}
         <div className="bubble-wrapper left-bubble">
           <div className="bubble">
             <div className="bubble-inner"></div>
@@ -43,23 +43,7 @@ const AnimatedBackground = () => {
                 <div key={i} className={`burst-particle particle-${i + 1}`}></div>
               ))}
             </div>
-            <div className="name-reveal">DARSHAN</div>
-          </div>
-        </div>
-
-        {/* Right Bubble - Manjappa */}
-        <div className="bubble-wrapper right-bubble">
-          <div className="bubble">
-            <div className="bubble-inner"></div>
-            <div className="bubble-shine"></div>
-          </div>
-          <div className="bubble-burst">
-            <div className="burst-particles">
-              {[...Array(12)].map((_, i) => (
-                <div key={i} className={`burst-particle particle-${i + 1}`}></div>
-              ))}
-            </div>
-            <div className="name-reveal">MANJAPPA</div>
+            <div className="name-reveal">SHOPIC</div>
           </div>
         </div>
       </div>

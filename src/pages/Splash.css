@@ -1,0 +1,126 @@
+.splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #000000 0%, #0f172a 25%, #1e293b 50%, #0f172a 75%, #000000 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.splash-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-icon-container {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(to right, #a855f7, #ec4899);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  /* Icon drops from top and scales in */
+  animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  opacity: 0;
+  transform: translateY(-50px) scale(0.5);
+}
+
+.camera-icon {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+.splash-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.splash-text {
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: transparent;
+  background: linear-gradient(45deg, #60a5fa, #a78bfa, #f472b6);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  /* Mask trick to reveal text from left to right */
+  clip-path: inset(0 100% 0 0);
+  animation: revealText 1.5s ease-out 0.8s forwards, gradientShift 4s ease-in-out infinite;
+}
+
+/* Pulsing animated lines from AnimatedBackground to give it life */
+.splash-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, #60a5fa, transparent);
+  border-radius: 50%;
+  animation: particleFloat 4s linear infinite;
+  opacity: 0.5;
+}
+
+.splash-particle:nth-child(1) { top: 20%; left: 30%; animation-delay: 0s; }
+.splash-particle:nth-child(2) { top: 70%; left: 20%; animation-delay: -1s; }
+.splash-particle:nth-child(3) { top: 40%; left: 80%; animation-delay: -2s; }
+.splash-particle:nth-child(4) { top: 80%; left: 70%; animation-delay: -3s; }
+.splash-particle:nth-child(5) { top: 10%; left: 60%; animation-delay: -1.5s; }
+
+
+@keyframes dropIn {
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes revealText {
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes particleFloat {
+  0% { 
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+  50% { opacity: 0.8; }
+  100% { 
+    transform: translateY(-50px) translateX(25px);
+    opacity: 0;
+  }
+}
+
+/* Page Transition Out */
+.splash-container.fade-out {
+  animation: fadeOutSplash 0.8s ease-in forwards;
+}
+
+@keyframes fadeOutSplash {
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

@@ -30,6 +30,8 @@ import {
   Globe
 } from 'lucide-react';
 import { UploadFile } from '@/integrations/Core';
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 export default function CreateContest() {
   const navigate = useNavigate();
@@ -145,13 +147,28 @@ export default function CreateContest() {
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         max_participants: formData.max_participants,
-        max_photos_per_entry: formData.max_photos_allowed || formData.max_photos_per_entry || 1, // Map frontend field to DB column
+        max_photos_per_entry: formData.max_photos_allowed || formData.max_photos_per_entry || 1,
         prize_pool: formData.prize_pool,
         rules: formData.rules,
         status: 'upcoming',
         created_by: (await User.me()).id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // Add constraint fields
+        required_photos: formData.required_photos || 1,
+        required_videos: formData.required_videos || 0,
+        max_videos_allowed: formData.max_videos_allowed || 1,
+
+        // Fallback settings object in case columns are missing (future proofing)
+        // NOTE: Commenting out until 'settings' column is added to DB via migration
+        /*
+        settings: {
+          required_photos: formData.required_photos || 1,
+          required_videos: formData.required_videos || 0,
+          max_videos_allowed: formData.max_videos_allowed || 1
+        }
+        */
       };
+
       // Note: tags, voting_end_date, required_photos, etc are not yet supported by DB schema
 
       console.log('Submitting contest data:', contestData);
@@ -253,15 +270,27 @@ export default function CreateContest() {
 
                   <div>
                     <Label htmlFor="description" className="text-white">Description</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      placeholder="Describe your contest..."
-                      rows={4}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                    />
+                    <div className="bg-white text-black mt-2 rounded-lg overflow-hidden [&_.ql-toolbar]:bg-slate-100 [&_.ql-container]:min-h-[200px] [&_.ql-editor]:text-base">
+                      <ReactQuill
+                        id="description"
+                        value={formData.description}
+                        onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
+                        theme="snow"
+                        placeholder="Describe your contest (supports formatting, alignment, lists, etc)..."
+                        modules={{
+                          toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            [{ 'size': ['small', false, 'large', 'huge'] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'align': [] }],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            ['link', 'image'],
+                            ['clean']
+                          ]
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <div>
